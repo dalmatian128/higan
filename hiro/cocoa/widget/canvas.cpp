@@ -194,7 +194,7 @@ auto pCanvas::_rasterize() -> void {
         pixelsWide:width pixelsHigh:height
         bitsPerSample:8 samplesPerPixel:4 hasAlpha:YES
         isPlanar:NO colorSpaceName:NSDeviceRGBColorSpace
-        bitmapFormat:NSAlphaNonpremultipliedBitmapFormat
+        bitmapFormat:NSBitmapFormatAlphaNonpremultiplied
         bytesPerRow:(width * 4) bitsPerPixel:32
       ];
       [surface addRepresentation:bitmap];

@@ -8,14 +8,14 @@
 
     [self setTarget:self];
     [self setAction:@selector(activate:)];
-    [self setBezelStyle:NSRegularSquareBezelStyle];
-    [self setButtonType:NSOnOffButton];
+    [self setBezelStyle:NSBezelStyleRegularSquare];
+    [self setButtonType:NSButtonTypeOnOff];
   }
   return self;
 }
 
 -(IBAction) activate:(id)sender {
-  checkButton->state.checked = [self state] != NSOffState;
+  checkButton->state.checked = [self state] != NSControlStateValueOff;
   checkButton->doToggle();
 }
 
@@ -64,7 +64,7 @@ auto pCheckButton::setBordered(bool bordered) -> void {
 
 auto pCheckButton::setChecked(bool checked) -> void {
   @autoreleasepool {
-    [cocoaCheckButton setState:checked ? NSOnState : NSOffState];
+    [cocoaCheckButton setState:checked ? NSControlStateValueOn : NSControlStateValueOff];
   }
 }
 

@@ -8,13 +8,13 @@
 
     [self setTarget:self];
     [self setAction:@selector(activate:)];
-    [self setButtonType:NSSwitchButton];
+    [self setButtonType:NSButtonTypeSwitch];
   }
   return self;
 }
 
 -(IBAction) activate:(id)sender {
-  checkLabel->state.checked = [self state] != NSOffState;
+  checkLabel->state.checked = [self state] != NSControlStateValueOff;
   checkLabel->doToggle();
 }
 
@@ -46,7 +46,7 @@ auto pCheckLabel::minimumSize() const -> Size {
 
 auto pCheckLabel::setChecked(bool checked) -> void {
   @autoreleasepool {
-    [cocoaCheckLabel setState:checked ? NSOnState : NSOffState];
+    [cocoaCheckLabel setState:checked ? NSControlStateValueOn : NSControlStateValueOff];
   }
 }
 

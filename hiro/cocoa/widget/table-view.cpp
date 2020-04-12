@@ -174,8 +174,8 @@
   if(self = [super initTextCell:@""]) {
     tableView = &tableViewReference;
     buttonCell = [[NSButtonCell alloc] initTextCell:@""];
-    [buttonCell setButtonType:NSSwitchButton];
-    [buttonCell setControlSize:NSSmallControlSize];
+    [buttonCell setButtonType:NSButtonTypeSwitch];
+    [buttonCell setControlSize:NSControlSizeSmall];
     [buttonCell setRefusesFirstResponder:YES];
     [buttonCell setTarget:self];
   }
@@ -202,7 +202,7 @@
 
       if(tableViewCell->state.checkable) {
         [buttonCell setHighlighted:YES];
-        [buttonCell setState:(tableViewCell->state.checked ? NSOnState : NSOffState)];
+        [buttonCell setState:(tableViewCell->state.checked ? NSControlStateValueOn : NSControlStateValueOff)];
         [buttonCell drawWithFrame:frame inView:view];
         frame.origin.x += frame.size.height + 2;
         frame.size.width -= frame.size.height + 2;
@@ -213,7 +213,7 @@
         [[NSGraphicsContext currentContext] saveGraphicsState];
         NSRect targetRect = NSMakeRect(frame.origin.x, frame.origin.y, frame.size.height, frame.size.height);
         NSRect sourceRect = NSMakeRect(0, 0, [image size].width, [image size].height);
-        [image drawInRect:targetRect fromRect:sourceRect operation:NSCompositeSourceOver fraction:1.0 respectFlipped:YES hints:nil];
+        [image drawInRect:targetRect fromRect:sourceRect operation:NSCompositingOperationSourceOver fraction:1.0 respectFlipped:YES hints:nil];
         [[NSGraphicsContext currentContext] restoreGraphicsState];
         frame.origin.x += frame.size.height + 2;
         frame.size.width -= frame.size.height + 2;
@@ -255,11 +255,11 @@
 //I am unable to get startTrackingAt:, continueTracking:, stopTracking: to work
 //so instead, I have to run a modal loop on events until the mouse button is released
 -(BOOL) trackMouse:(NSEvent*)event inRect:(NSRect)frame ofView:(NSView*)view untilMouseUp:(BOOL)flag {
-  if([event type] == NSLeftMouseDown) {
+  if([event type] == NSEventTypeLeftMouseDown) {
     NSWindow* window = [view window];
     NSEvent* nextEvent;
-    while((nextEvent = [window nextEventMatchingMask:(NSLeftMouseDragged | NSLeftMouseUp)])) {
-      if([nextEvent type] == NSLeftMouseUp) {
+    while((nextEvent = [window nextEventMatchingMask:(NSEventTypeLeftMouseDragged | NSEventTypeLeftMouseUp)])) {
+      if([nextEvent type] == NSEventTypeLeftMouseUp) {
         NSPoint point = [view convertPoint:[nextEvent locationInWindow] fromView:nil];
         NSRect rect = NSMakeRect(frame.origin.x, frame.origin.y, frame.size.height, frame.size.height);
         if(NSMouseInRect(point, rect, [view isFlipped])) {

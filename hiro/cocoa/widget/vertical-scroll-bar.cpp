@@ -9,7 +9,7 @@
     [self setTarget:self];
     [self setAction:@selector(scroll:)];
 
-    [self setControlSize:NSRegularControlSize];
+    [self setControlSize:NSControlSizeRegular];
     [self setScrollerStyle:NSScrollerStyleLegacy];
     [self setEnabled:YES];
 
@@ -73,7 +73,7 @@ auto pVerticalScrollBar::destruct() -> void {
 
 auto pVerticalScrollBar::minimumSize() const -> Size {
   @autoreleasepool {
-    return {(s32)[NSScroller scrollerWidthForControlSize:NSRegularControlSize scrollerStyle:NSScrollerStyleLegacy], 32};
+    return {(s32)[NSScroller scrollerWidthForControlSize:NSControlSizeRegular scrollerStyle:NSScrollerStyleLegacy], 32};
   }
 }
 

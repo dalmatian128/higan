@@ -5,8 +5,8 @@
 -(id) initWith:(hiro::mWindow&)windowReference {
   window = &windowReference;
 
-  NSUInteger style = NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask;
-  if(window->state.resizable) style |= NSResizableWindowMask;
+  NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
+  if(window->state.resizable) style |= NSWindowStyleMaskResizable;
 
   if(self = [super initWithContentRect:NSMakeRect(0, 0, 640, 480) styleMask:style backing:NSBackingStoreBuffered defer:YES]) {
     [self setDelegate:self];
@@ -75,7 +75,7 @@
     [rootMenu addItem:item];
 
     statusBar = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 0, 0)];
-    [statusBar setAlignment:NSLeftTextAlignment];
+    [statusBar setAlignment:NSTextAlignmentLeft];
     [statusBar setBordered:YES];
     [statusBar setBezeled:YES];
     [statusBar setBezelStyle:NSTextFieldSquareBezel];
@@ -172,11 +172,11 @@
 
   string result = nall::execute("spctl", "--status").output.strip();
   if(result == "assessments disabled") {
-    [alert setAlertStyle:NSInformationalAlertStyle];
+    [alert setAlertStyle:NSAlertStyleInformational];
     [alert setInformativeText:@"Gatekeeper has been successfully disabled."];
     [disableGatekeeper setHidden:YES];
   } else {
-    [alert setAlertStyle:NSWarningAlertStyle];
+    [alert setAlertStyle:NSAlertStyleWarning];
     [alert setInformativeText:@"Error: failed to disable Gatekeeper."];
   }
 
@@ -362,7 +362,7 @@ auto pWindow::setModal(bool modal) -> void {
       [NSApp runModalForWindow:cocoaWindow];
     } else {
       [NSApp stopModal];
-      NSEvent* event = [NSEvent otherEventWithType:NSApplicationDefined location:NSMakePoint(0, 0) modifierFlags:0 timestamp:0.0 windowNumber:0 context:nil subtype:0 data1:0 data2:0];
+      NSEvent* event = [NSEvent otherEventWithType:NSEventTypeApplicationDefined location:NSMakePoint(0, 0) modifierFlags:0 timestamp:0.0 windowNumber:0 context:nil subtype:0 data1:0 data2:0];
       [NSApp postEvent:event atStart:true];
     }
   }
@@ -370,8 +370,8 @@ auto pWindow::setModal(bool modal) -> void {
 
 auto pWindow::setResizable(bool resizable) -> void {
   @autoreleasepool {
-    NSUInteger style = NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask;
-    if(resizable) style |= NSResizableWindowMask;
+    NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
+    if(resizable) style |= NSWindowStyleMaskResizable;
     [cocoaWindow setStyleMask:style];
   }
 }
