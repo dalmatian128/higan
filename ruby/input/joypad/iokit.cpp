@@ -244,10 +244,10 @@ private:
 
   auto createMatcherCriteria(u32 page, u32 usage) -> CFDictionaryRef {
     CFNumberRef pageNumber = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &page);
-    if(!pageNumber) return nullptr;
+    if(pageNumber == nil) return nullptr;
 
     CFNumberRef usageNumber = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &usage);
-    if(!usageNumber) return CFRelease(pageNumber), nullptr;
+    if(usageNumber == nil) return CFRelease(pageNumber), nullptr;
 
     const void* keys[] = {CFSTR(kIOHIDDeviceUsagePageKey), CFSTR(kIOHIDDeviceUsageKey)};
     const void* values[] = {pageNumber, usageNumber};
