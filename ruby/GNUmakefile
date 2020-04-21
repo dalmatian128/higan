@@ -5,7 +5,7 @@ ifeq ($(ruby),)
     ruby += input.windows
   else ifeq ($(platform),macos)
     ruby += video.cgl
-    ruby += audio.openal
+    ruby += audio.openal audio.avaudioengine
     ruby += input.quartz #input.carbon
   else ifeq ($(platform),linux)
     ruby += video.glx video.glx2 video.xvideo video.xshm
@@ -57,6 +57,7 @@ endif
 ifeq ($(platform),macos)
   ruby.options += -framework IOKit
   ruby.options += $(if $(findstring audio.openal,$(ruby)),-framework OpenAL)
+  ruby.options += $(if $(findstring audio.avaudioengine,$(ruby)),-framework CoreAudio -framework AVFoundation)
 endif
 
 ifeq ($(platform),linux)

@@ -18,6 +18,10 @@
   #include <ruby/audio/openal.cpp>
 #endif
 
+#if defined(AUDIO_AVAUDIOENGINE)
+  #include <ruby/audio/avaudioengine.cpp>
+#endif
+
 #if defined(AUDIO_OSS)
   #include <ruby/audio/oss.cpp>
 #endif
@@ -162,6 +166,10 @@ auto Audio::create(string driver) -> bool {
   if(driver == "OpenAL") self.instance = new AudioOpenAL(*this);
   #endif
 
+  #if defined(AUDIO_AVAUDIOENGINE)
+  if(driver == "AVAudioEngine") self.instance = new AudioAVAudioEngine(*this);
+  #endif
+
   #if defined(AUDIO_OSS)
   if(driver == "OSS") self.instance = new AudioOSS(*this);
   #endif
@@ -226,6 +234,10 @@ auto Audio::hasDrivers() -> vector<string> {
   "OpenAL",
   #endif
 
+  #if defined(AUDIO_AVAUDIOENGINE)
+  "AVAudioEngine",
+  #endif
+
   #if defined(AUDIO_PULSEAUDIO)
   "PulseAudio",
   #endif
@@ -258,6 +270,8 @@ auto Audio::optimalDriver() -> string {
   return "OSS";
   #elif defined(AUDIO_OPENAL)
   return "OpenAL";
+  #elif defined(AUDIO_AVAUDIOENGINE)
+  return "AVAudioEngine";
   #elif defined(AUDIO_PULSEAUDIO)
   return "PulseAudio";
   #elif defined(AUDIO_PULSEAUDIOSIMPLE)
@@ -284,6 +298,8 @@ auto Audio::safestDriver() -> string {
   return "OSS";
   #elif defined(AUDIO_OPENAL)
   return "OpenAL";
+  #elif defined(AUDIO_AVAUDIOENGINE)
+  return "AVAudioEngine";
   #elif defined(AUDIO_PULSEAUDIO)
   return "PulseAudio";
   #elif defined(AUDIO_PULSEAUDIOSIMPLE)
