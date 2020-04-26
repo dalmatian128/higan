@@ -341,10 +341,6 @@ auto Video::hasMonitors() -> vector<Monitor> {
 #endif
 
 #if defined(DISPLAY_QUARTZ)
-static auto MonitorKeyArrayCallback(const void* key, const void* value, void* context) -> void {
-  CFArrayAppendValue((CFMutableArrayRef)context, key);
-}
-
 auto Video::hasMonitors() -> vector<Monitor> {
   vector<Monitor> monitors;
   @autoreleasepool {
@@ -360,26 +356,65 @@ auto Video::hasMonitors() -> vector<Monitor> {
       monitor.width = rectangle.size.width;
       monitor.height = rectangle.size.height;
       //getting the name of the monitor on macOS: "Think Different"
-      auto screenDictionary = [screen deviceDescription];
-      auto screenID = [screenDictionary objectForKey:@"NSScreenNumber"];
-      auto displayID = [screenID unsignedIntValue];
-      auto displayPort = CGDisplayIOServicePort(displayID);
-      auto dictionary = IODisplayCreateInfoDictionary(displayPort, 0);
-      CFRetain(dictionary);
-      if(auto names = (CFDictionaryRef)CFDictionaryGetValue(dictionary, CFSTR(kDisplayProductName))) {
-        auto languageKeys = CFArrayCreateMutable(kCFAllocatorDefault, 0, &kCFTypeArrayCallBacks);
-        CFDictionaryApplyFunction(names, MonitorKeyArrayCallback, (void*)languageKeys);
-        auto orderLanguageKeys = CFBundleCopyPreferredLocalizationsFromArray(languageKeys);
-        CFRelease(languageKeys);
-        if(orderLanguageKeys && CFArrayGetCount(orderLanguageKeys)) {
-          auto languageKey = CFArrayGetValueAtIndex(orderLanguageKeys, 0);
-          auto localName = CFDictionaryGetValue(names, languageKey);
-          monitor.name = {1 + monitors.size(), ": ", [(__bridge NSString*)localName UTF8String]};
-          CFRelease(localName);
+      NSString* localizedName;
+      if (@available(macOS 10.15, *)) {
+        localizedName = [screen localizedName];
+      } else {
+        auto screenDictionary = [screen deviceDescription];
+        id screenID = [screenDictionary objectForKey:@"NSScreenNumber"];
+        auto displayID = [screenID unsignedIntValue];
+
+        CFMutableDictionaryRef matching = IOServiceMatching("IODisplayConnect");
+        io_iterator_t iter;
+        kern_return_t err = IOServiceGetMatchingServices(kIOMasterPortDefault, matching, &iter);
+        if(err)
+          continue;
+
+        const CFStringRef kDisplays[] = {
+          CFSTR(kDisplayVendorID), CFSTR(kDisplayProductID), CFSTR(kDisplaySerialNumber)
+        };
+        uint32_t (*fnCGDisplays[])(CGDirectDisplayID) = {
+          CGDisplayVendorNumber, CGDisplayModelNumber, CGDisplaySerialNumber
+        };
+
+        while(io_service_t framebuffer = IOIteratorNext(iter)) {
+          CFDictionaryRef info = IODisplayCreateInfoDictionary(framebuffer, kIODisplayOnlyPreferredName);
+
+          size_t idx;
+          for(idx = 0; idx < sizeof(kDisplays)/sizeof(kDisplays[0]); idx++) {
+            CFNumberRef number = (CFNumberRef)CFDictionaryGetValue(info, kDisplays[idx]);
+            CFIndex value = 0x00000000;
+            if(number != nullptr) {
+              Boolean success = CFNumberGetValue(number, kCFNumberCFIndexType, &value);
+              CFRelease(number);
+              if(!success) {
+                break;
+              }
+            }
+            if(fnCGDisplays[idx](displayID) != value) {
+              break;
+            }
+          }
+          if(idx != sizeof(kDisplays)/sizeof(kDisplays[0])) {
+            CFRelease(info);
+            continue;
+          }
+
+          CFDictionaryRef productNameRef = (CFDictionaryRef)CFDictionaryGetValue(info, CFSTR(kDisplayProductName));
+          if(productNameRef) {
+            const void* value;
+            CFDictionaryGetKeysAndValues(productNameRef, NULL, &value);
+            if(value) {
+              localizedName = (__bridge_transfer NSString*)value;
+            }
+          }
+          CFRelease(info);
+          break;
         }
-        CFRelease(orderLanguageKeys);
+
+        IOObjectRelease(iter);
       }
-      CFRelease(dictionary);
+      monitor.name = {1 + monitors.size(), ": ", [localizedName UTF8String]};
       monitors.append(monitor);
     }
   }
