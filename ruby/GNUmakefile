@@ -4,7 +4,7 @@ ifeq ($(ruby),)
     ruby += audio.wasapi audio.xaudio2 audio.directsound audio.waveout #audio.asio
     ruby += input.windows
   else ifeq ($(platform),macos)
-    ruby += video.cgl
+    ruby += video.cgl video.metal
     ruby += audio.openal audio.avaudioengine
     ruby += input.quartz #input.carbon
   else ifeq ($(platform),linux)
@@ -30,6 +30,7 @@ ruby.flags += $(if $(findstring input.sdl,$(ruby)),$(shell sdl2-config --cflags)
 ruby.options :=
 
 ruby.options += $(if $(findstring video.cgl,$(ruby)),-framework OpenGL)
+ruby.options += $(if $(findstring video.metal,$(ruby)),-framework Metal -framework MetalKit -framework CoreMedia)
 ruby.options += $(if $(findstring video.direct3d,$(ruby)),-ld3d9)
 ruby.options += $(if $(findstring video.directdraw,$(ruby)),-lddraw)
 ruby.options += $(if $(findstring video.glx,$(ruby)),-lGL)
@@ -73,9 +74,21 @@ endif
 
 ruby.objects := $(object.path)/ruby.o
 
+ifeq ($(platform),macos)
+  ruby.resource := $(object.path)/default.metallib
+endif
+
 $(object.path)/ruby.o: $(ruby.path)/ruby.cpp $(call rwildcard,$(ruby.path))
 	$(info Compiling $(subst ../,,$<) ...)
 	@$(compiler) $(ruby.flags) $(flags) $(flags.deps) -c $< -o $@
+
+$(object.path)/shaders.air: $(ruby.path)/video/shaders.metal
+	$(info Compiling $(subst ../,,$<) ...)
+	@xcrun -sdk macosx metal -c $< -o $@
+
+$(object.path)/default.metallib: $(object.path)/shaders.air
+	$(info Compiling $(subst ../,,$<) ...)
+	@xcrun -sdk macosx metallib $< -o $@
 
 ruby.verbose:
 	$(info ruby Drivers:)

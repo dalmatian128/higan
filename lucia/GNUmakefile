@@ -62,7 +62,7 @@ $(object.path)/lucia-tools.o: $(lucia.path)/tools/tools.cpp
 all.objects := $(libco.objects) $(ruby.objects) $(hiro.objects) $(ares.objects) $(mia.objects) $(lucia.objects)
 all.options := $(libco.options) $(ruby.options) $(hiro.options) $(ares.options) $(mia.options) $(lucia.options) $(options)
 
-all: $(all.objects)
+all: $(all.objects) $(ruby.resource)
 	$(info Linking $(output.path)/$(name) ...)
 	+@$(compiler) -o $(output.path)/$(name) $(all.objects) $(all.options)
 ifeq ($(platform),macos)
@@ -71,6 +71,7 @@ ifeq ($(platform),macos)
 	mkdir -p $(output.path)/$(name).app/Contents/Resources/
 	mv $(output.path)/$(name) $(output.path)/$(name).app/Contents/MacOS/$(name)
 	cp resource/$(name).plist $(output.path)/$(name).app/Contents/Info.plist
+	cp $(object.path)/default.metallib $(output.path)/$(name).app/Contents/Resources/
 	sips -s format icns resource/$(name).png --out $(output.path)/$(name).app/Contents/Resources/$(name).icns
 endif
 
