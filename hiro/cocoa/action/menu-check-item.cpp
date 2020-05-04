@@ -34,7 +34,7 @@ auto pMenuCheckItem::construct() -> void {
 
 auto pMenuCheckItem::destruct() -> void {
   @autoreleasepool {
-    [cocoaAction release];
+    cocoaAction = cocoaMenuCheckItem = nil;
   }
 }
 

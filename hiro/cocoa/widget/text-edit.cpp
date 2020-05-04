@@ -6,7 +6,7 @@
   if(self = [super initWithFrame:NSMakeRect(0, 0, 0, 0)]) {
     textEdit = &textEditReference;
 
-    content = [[[NSTextView alloc] initWithFrame:NSMakeRect(0, 0, 0, 0)] autorelease];
+    content = [[NSTextView alloc] initWithFrame:NSMakeRect(0, 0, 0, 0)];
     [content setDelegate:self];
     [content setRichText:NO];
 
@@ -60,7 +60,7 @@ auto pTextEdit::construct() -> void {
 auto pTextEdit::destruct() -> void {
   @autoreleasepool {
     [cocoaView removeFromSuperview];
-    [cocoaView release];
+    cocoaView = cocoaTextEdit = nil;
   }
 }
 
@@ -69,7 +69,7 @@ auto pTextEdit::setBackgroundColor(Color color) -> void {
 
 auto pTextEdit::setEditable(bool editable) -> void {
   @autoreleasepool {
-    [[cocoaView content] setEditable:(editable && self().enabled(true))];
+    [[cocoaTextEdit content] setEditable:(editable && self().enabled(true))];
   }
 }
 
@@ -80,7 +80,7 @@ auto pTextEdit::setEnabled(bool enabled) -> void {
 
 auto pTextEdit::setFont(const Font& font) -> void {
   @autoreleasepool {
-    [[cocoaView content] setFont:pFont::create(font)];
+    [[cocoaTextEdit content] setFont:pFont::create(font)];
   }
 }
 
@@ -89,33 +89,33 @@ auto pTextEdit::setForegroundColor(Color color) -> void {
 
 auto pTextEdit::setGeometry(Geometry geometry) -> void {
   pWidget::setGeometry(geometry);
-  [cocoaView configure];
+  [cocoaTextEdit configure];
 }
 
 auto pTextEdit::setText(const string& text) -> void {
   @autoreleasepool {
-    [[cocoaView content] setString:[NSString stringWithUTF8String:text]];
+    [[cocoaTextEdit content] setString:[NSString stringWithUTF8String:text]];
   }
 }
 
 auto pTextEdit::setTextCursor(TextCursor cursor) -> void {
   @autoreleasepool {
     //todo: handle text selection (cursor.length())
-    string text = [[[cocoaView content] string] UTF8String];
+    string text = [[[cocoaTextEdit content] string] UTF8String];
     auto offset = min(cursor.offset(), text.length());
-    [[cocoaView content] setSelectedRange:NSMakeRange(offset, 0)];
+    [[cocoaTextEdit content] setSelectedRange:NSMakeRange(offset, 0)];
   }
 }
 
 auto pTextEdit::setWordWrap(bool wordWrap) -> void {
   @autoreleasepool {
-    [cocoaView configure];
+    [cocoaTextEdit configure];
   }
 }
 
 auto pTextEdit::text() const -> string {
   @autoreleasepool {
-    return [[[cocoaView content] string] UTF8String];
+    return [[[cocoaTextEdit content] string] UTF8String];
   }
 }
 

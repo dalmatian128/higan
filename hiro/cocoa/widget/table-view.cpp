@@ -29,9 +29,8 @@
 }
 
 -(void) dealloc {
-  [content release];
-  [font release];
-  [super dealloc];
+  content = nil;
+  font = nil;
 }
 
 -(CocoaTableViewContent*) content {
@@ -44,8 +43,7 @@
 
 -(void) setFont:(NSFont*)fontPointer {
   if(!fontPointer) fontPointer = [NSFont systemFontOfSize:12];
-  [fontPointer retain];
-  if(font) [font release];
+  if(font) font = nil;
   font = fontPointer;
 
   u32 fontHeight = hiro::pFont::size(font, " ").height();
@@ -190,8 +188,9 @@
 }
 
 -(void) drawWithFrame:(NSRect)frame inView:(NSView*)view {
-  if(auto tableViewItem = tableView->item([view rowAtPoint:frame.origin])) {
-    if(auto tableViewCell = tableViewItem->cell([view columnAtPoint:frame.origin])) {
+  CocoaTableViewContent* content = (CocoaTableViewContent*)view;
+  if(auto tableViewItem = tableView->item([content rowAtPoint:frame.origin])) {
+    if(auto tableViewCell = tableViewItem->cell([content columnAtPoint:frame.origin])) {
       NSColor* backgroundColor = nil;
       if([self isHighlighted]) backgroundColor = [NSColor alternateSelectedControlColor];
       else if(!tableView->enabled(true)) backgroundColor = [NSColor controlBackgroundColor];
@@ -264,8 +263,9 @@
         NSPoint point = [view convertPoint:[nextEvent locationInWindow] fromView:nil];
         NSRect rect = NSMakeRect(frame.origin.x, frame.origin.y, frame.size.height, frame.size.height);
         if(NSMouseInRect(point, rect, [view isFlipped])) {
-          if(auto tableViewItem = tableView->item([view rowAtPoint:point])) {
-            if(auto tableViewCell = tableViewItem->cell([view columnAtPoint:point])) {
+          CocoaTableViewContent* content = (CocoaTableViewContent*)view;
+          if(auto tableViewItem = tableView->item([content rowAtPoint:point])) {
+            if(auto tableViewCell = tableViewItem->cell([content columnAtPoint:point])) {
               tableViewCell->state.checked = !tableViewCell->state.checked;
               tableView->doToggle(tableViewCell->instance);
             }
@@ -305,33 +305,33 @@ auto pTableView::construct() -> void {
 auto pTableView::destruct() -> void {
   @autoreleasepool {
     [cocoaView removeFromSuperview];
-    [cocoaView release];
+    cocoaView = cocoaTableView = nil;
   }
 }
 
 auto pTableView::append(sTableViewColumn column) -> void {
   @autoreleasepool {
-    [cocoaView reloadColumns];
+    [cocoaTableView reloadColumns];
     resizeColumns();
   }
 }
 
 auto pTableView::append(sTableViewItem item) -> void {
   @autoreleasepool {
-    [[cocoaView content] reloadData];
+    [[cocoaTableView content] reloadData];
   }
 }
 
 auto pTableView::remove(sTableViewColumn column) -> void {
   @autoreleasepool {
-    [cocoaView reloadColumns];
+    [cocoaTableView reloadColumns];
     resizeColumns();
   }
 }
 
 auto pTableView::remove(sTableViewItem item) -> void {
   @autoreleasepool {
-    [[cocoaView content] reloadData];
+    [[cocoaTableView content] reloadData];
   }
 }
 
@@ -357,7 +357,7 @@ auto pTableView::resizeColumns() -> void {
       if(auto self = state().columns[column]->self()) {
         s32 width = widths[column];
         if(self->state().expandable) width += expandWidth;
-        NSTableColumn* tableColumn = [[cocoaView content] tableColumnWithIdentifier:[[NSNumber numberWithInteger:column] stringValue]];
+        NSTableColumn* tableColumn = [[cocoaTableView content] tableColumnWithIdentifier:[[NSNumber numberWithInteger:column] stringValue]];
         [tableColumn setWidth:width];
       }
     }
@@ -372,7 +372,7 @@ auto pTableView::setBackgroundColor(Color color) -> void {
 
 auto pTableView::setBatchable(bool batchable) -> void {
   @autoreleasepool {
-    [[cocoaView content] setAllowsMultipleSelection:(batchable ? YES : NO)];
+    [[cocoaTableView content] setAllowsMultipleSelection:(batchable ? YES : NO)];
   }
 }
 
@@ -382,13 +382,13 @@ auto pTableView::setBordered(bool bordered) -> void {
 auto pTableView::setEnabled(bool enabled) -> void {
   pWidget::setEnabled(enabled);
   @autoreleasepool {
-    [[cocoaView content] setEnabled:enabled];
+    [[cocoaTableView content] setEnabled:enabled];
   }
 }
 
 auto pTableView::setFont(const Font& font) -> void {
   @autoreleasepool {
-    [cocoaView setFont:pFont::create(font)];
+    [cocoaTableView setFont:pFont::create(font)];
   }
 }
 
@@ -398,9 +398,9 @@ auto pTableView::setForegroundColor(Color color) -> void {
 auto pTableView::setHeadered(bool headered) -> void {
   @autoreleasepool {
     if(headered) {
-      [[cocoaView content] setHeaderView:[[[NSTableHeaderView alloc] init] autorelease]];
+      [[cocoaTableView content] setHeaderView:[[NSTableHeaderView alloc] init]];
     } else {
-      [[cocoaView content] setHeaderView:nil];
+      [[cocoaTableView content] setHeaderView:nil];
     }
   }
 }

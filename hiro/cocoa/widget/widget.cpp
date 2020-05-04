@@ -26,7 +26,7 @@ auto pWidget::construct() -> void {
 auto pWidget::destruct() -> void {
   @autoreleasepool {
     [cocoaView removeFromSuperview];
-    [cocoaView release];
+    cocoaView = nil;
   }
 }
 
@@ -44,8 +44,13 @@ auto pWidget::setEnabled(bool enabled) -> void {
   if(abstract) enabled = false;
 
   @autoreleasepool {
-    if([cocoaView respondsToSelector:@selector(setEnabled:)]) {
-      [cocoaView setEnabled:enabled];
+    SEL aSelector = @selector(setEnabled:);
+    if([cocoaView respondsToSelector:aSelector]) {
+      NSMethodSignature *methodSignature = [cocoaView methodSignatureForSelector:aSelector];
+      NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:methodSignature];
+      [invocation setSelector:aSelector];
+      [invocation setArgument:&enabled atIndex:2];
+      [invocation invokeWithTarget:cocoaView];
     }
   }
 }
@@ -62,8 +67,14 @@ auto pWidget::setFocused() -> void {
 
 auto pWidget::setFont(const Font& font) -> void {
   @autoreleasepool {
-    if([cocoaView respondsToSelector:@selector(setFont:)]) {
-      [cocoaView setFont:pFont::create(font)];
+    SEL aSelector = @selector(setFont:);
+    if([cocoaView respondsToSelector:aSelector]) {
+      NSFont* nsfont = pFont::create(font);
+      NSMethodSignature *methodSignature = [cocoaView methodSignatureForSelector:aSelector];
+      NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:methodSignature];
+      [invocation setSelector:aSelector];
+      [invocation setArgument:&nsfont atIndex:2];
+      [invocation invokeWithTarget:cocoaView];
     }
   }
 }

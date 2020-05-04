@@ -35,7 +35,7 @@ auto pHorizontalSlider::construct() -> void {
 auto pHorizontalSlider::destruct() -> void {
   @autoreleasepool {
     [cocoaView removeFromSuperview];
-    [cocoaView release];
+    cocoaView = cocoaHorizontalSlider = nil;
   }
 }
 
@@ -52,13 +52,13 @@ auto pHorizontalSlider::setGeometry(Geometry geometry) -> void {
 
 auto pHorizontalSlider::setLength(u32 length) -> void {
   @autoreleasepool {
-    [cocoaView setMaxValue:length];
+    [cocoaHorizontalSlider setMaxValue:length];
   }
 }
 
 auto pHorizontalSlider::setPosition(u32 position) -> void {
   @autoreleasepool {
-    [cocoaView setDoubleValue:position];
+    [cocoaHorizontalSlider setDoubleValue:position];
   }
 }
 

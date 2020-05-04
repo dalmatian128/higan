@@ -32,15 +32,14 @@ auto pMenu::construct() -> void {
 
 auto pMenu::destruct() -> void {
   @autoreleasepool {
-    [[cocoaAction cocoaMenu] release];
-    [cocoaAction release];
+    cocoaAction = cocoaMenu = nil;
   }
 }
 
 auto pMenu::append(sAction action) -> void {
   @autoreleasepool {
     if(auto pAction = action->self()) {
-      [[cocoaAction cocoaMenu] addItem:pAction->cocoaAction];
+      [[cocoaMenu cocoaMenu] addItem:pAction->cocoaAction];
     }
   }
 }
@@ -48,7 +47,7 @@ auto pMenu::append(sAction action) -> void {
 auto pMenu::remove(sAction action) -> void {
   @autoreleasepool {
     if(auto pAction = action->self()) {
-      [[cocoaAction cocoaMenu] removeItem:pAction->cocoaAction];
+      [[cocoaMenu cocoaMenu] removeItem:pAction->cocoaAction];
     }
   }
 }
@@ -62,7 +61,7 @@ auto pMenu::setIcon(const image& icon) -> void {
 
 auto pMenu::setText(const string& text) -> void {
   @autoreleasepool {
-    [[cocoaAction cocoaMenu] setTitle:[NSString stringWithUTF8String:text]];
+    [[cocoaMenu cocoaMenu] setTitle:[NSString stringWithUTF8String:text]];
     [cocoaAction setTitle:[NSString stringWithUTF8String:text]];
   }
 }

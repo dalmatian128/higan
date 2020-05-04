@@ -39,7 +39,7 @@ auto pBrowserWindow::open(BrowserWindow::State& state) -> string {
       const char* name = [[names objectAtIndex:0] UTF8String];
       if(name) result = name;
     }
-    [filters release];
+    filters = nil;
   }
 
   return result;
@@ -62,7 +62,7 @@ auto pBrowserWindow::save(BrowserWindow::State& state) -> string {
       const char* name = [[names objectAtIndex:0] UTF8String];
       if(name) result = name;
     }
-    [filters release];
+    filters = nil;
   }
 
   return result;

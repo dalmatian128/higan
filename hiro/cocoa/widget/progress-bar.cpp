@@ -29,7 +29,7 @@ auto pProgressBar::construct() -> void {
 auto pProgressBar::destruct() -> void {
   @autoreleasepool {
     [cocoaView removeFromSuperview];
-    [cocoaView release];
+    cocoaView = cocoaProgressBar = nil;
   }
 }
 
@@ -39,7 +39,7 @@ auto pProgressBar::minimumSize() const -> Size {
 
 auto pProgressBar::setPosition(u32 position) -> void {
   @autoreleasepool {
-    [cocoaView setDoubleValue:position];
+    [cocoaProgressBar setDoubleValue:position];
   }
 }
 

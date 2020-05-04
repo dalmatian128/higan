@@ -67,7 +67,7 @@ auto pHorizontalScrollBar::construct() -> void {
 auto pHorizontalScrollBar::destruct() -> void {
   @autoreleasepool {
     [cocoaView removeFromSuperview];
-    [cocoaView release];
+    cocoaView = cocoaHorizontalScrollBar = nil;
   }
 }
 
@@ -79,13 +79,13 @@ auto pHorizontalScrollBar::minimumSize() const -> Size {
 
 auto pHorizontalScrollBar::setLength(u32 length) -> void {
   @autoreleasepool {
-    [cocoaView update];
+    [cocoaHorizontalScrollBar update];
   }
 }
 
 auto pHorizontalScrollBar::setPosition(u32 position) -> void {
   @autoreleasepool {
-    [cocoaView update];
+    [cocoaHorizontalScrollBar update];
   }
 }
 

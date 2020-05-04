@@ -14,7 +14,7 @@ auto pComboButtonItem::setIcon(const image& icon) -> void {
 auto pComboButtonItem::setSelected() -> void {
   @autoreleasepool {
     if(auto parent = _parent()) {
-      [parent->cocoaView selectItemAtIndex:self().offset()];
+      [parent->cocoaComboButton selectItemAtIndex:self().offset()];
     }
   }
 }
@@ -22,7 +22,7 @@ auto pComboButtonItem::setSelected() -> void {
 auto pComboButtonItem::setText(const string& text) -> void {
   @autoreleasepool {
     if(auto parent = _parent()) {
-      [[parent->cocoaView itemAtIndex:self().offset()] setTitle:[NSString stringWithUTF8String:text]];
+      [[parent->cocoaComboButton itemAtIndex:self().offset()] setTitle:[NSString stringWithUTF8String:text]];
     }
   }
 }

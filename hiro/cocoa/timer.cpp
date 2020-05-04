@@ -48,7 +48,7 @@ auto pTimer::construct() -> void {
 auto pTimer::destruct() -> void {
   @autoreleasepool {
     if([cocoaTimer instance]) [[cocoaTimer instance] invalidate];
-    [cocoaTimer release];
+    cocoaTimer = nil;
   }
 }
 

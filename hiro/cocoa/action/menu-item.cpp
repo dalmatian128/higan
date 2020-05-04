@@ -31,7 +31,7 @@ auto pMenuItem::construct() -> void {
 
 auto pMenuItem::destruct() -> void {
   @autoreleasepool {
-    [cocoaAction release];
+    cocoaAction = cocoaMenuItem = nil;
   }
 }
 

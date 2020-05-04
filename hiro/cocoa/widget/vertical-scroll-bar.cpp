@@ -67,7 +67,7 @@ auto pVerticalScrollBar::construct() -> void {
 auto pVerticalScrollBar::destruct() -> void {
   @autoreleasepool {
     [cocoaView removeFromSuperview];
-    [cocoaView release];
+    cocoaView = cocoaVerticalScrollBar = nil;
   }
 }
 
@@ -79,13 +79,13 @@ auto pVerticalScrollBar::minimumSize() const -> Size {
 
 auto pVerticalScrollBar::setLength(u32 length) -> void {
   @autoreleasepool {
-    [cocoaView update];
+    [cocoaVerticalScrollBar update];
   }
 }
 
 auto pVerticalScrollBar::setPosition(u32 position) -> void {
   @autoreleasepool {
-    [cocoaView update];
+    [cocoaVerticalScrollBar update];
   }
 }
 

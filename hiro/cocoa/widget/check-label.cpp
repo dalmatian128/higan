@@ -35,7 +35,7 @@ auto pCheckLabel::construct() -> void {
 auto pCheckLabel::destruct() -> void {
   @autoreleasepool {
     [cocoaView removeFromSuperview];
-    [cocoaView release];
+    cocoaView = cocoaCheckLabel = nil;
   }
 }
 
@@ -46,7 +46,7 @@ auto pCheckLabel::minimumSize() const -> Size {
 
 auto pCheckLabel::setChecked(bool checked) -> void {
   @autoreleasepool {
-    [cocoaView setState:checked ? NSOnState : NSOffState];
+    [cocoaCheckLabel setState:checked ? NSOnState : NSOffState];
   }
 }
 
@@ -59,7 +59,7 @@ auto pCheckLabel::setGeometry(Geometry geometry) -> void {
 
 auto pCheckLabel::setText(const string& text) -> void {
   @autoreleasepool {
-    [cocoaView setTitle:[NSString stringWithUTF8String:text]];
+    [cocoaCheckLabel setTitle:[NSString stringWithUTF8String:text]];
   }
 }
 

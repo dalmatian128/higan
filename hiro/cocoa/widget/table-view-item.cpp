@@ -11,7 +11,7 @@ auto pTableViewItem::destruct() -> void {
 auto pTableViewItem::append(sTableViewCell cell) -> void {
   @autoreleasepool {
     if(auto tableView = _parent()) {
-      [[tableView->cocoaView content] reloadData];
+      [[tableView->cocoaTableView content] reloadData];
     }
   }
 }
@@ -19,7 +19,7 @@ auto pTableViewItem::append(sTableViewCell cell) -> void {
 auto pTableViewItem::remove(sTableViewCell cell) -> void {
   @autoreleasepool {
     if(auto tableView = _parent()) {
-      [[tableView->cocoaView content] reloadData];
+      [[tableView->cocoaTableView content] reloadData];
     }
   }
 }
@@ -44,8 +44,8 @@ auto pTableViewItem::setSelected(bool selected) -> void {
       for(auto& item : tableView->state().items) {
         if(item->selected()) [indexSet addIndex:item->offset()];
       }
-      [[tableView->cocoaView content] selectRowIndexes:indexSet byExtendingSelection:NO];
-      [indexSet release];
+      [[tableView->cocoaTableView content] selectRowIndexes:indexSet byExtendingSelection:NO];
+      indexSet = nil;
     }
   }
 }

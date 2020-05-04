@@ -35,7 +35,7 @@ auto pMenuRadioItem::construct() -> void {
 
 auto pMenuRadioItem::destruct() -> void {
   @autoreleasepool {
-    [cocoaAction release];
+    cocoaAction = cocoaMenuRadioItem = nil;
   }
 }
 

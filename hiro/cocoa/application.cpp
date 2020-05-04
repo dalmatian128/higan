@@ -25,7 +25,13 @@
   for(u32 n = 0; n < [windows count]; n++) {
     NSWindow* window = [windows objectAtIndex:n];
     if([window isMiniaturized]) {
-      [window updateInDock];
+      SEL aSelector = @selector(updateInDock:);
+      if([window respondsToSelector:aSelector]) {
+        NSMethodSignature *methodSignature = [window methodSignatureForSelector:aSelector];
+        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:methodSignature];
+        [invocation setSelector:aSelector];
+        [invocation invokeWithTarget:window];
+      }
     }
   }
 }
@@ -71,13 +77,11 @@ auto pApplication::pendingEvents() -> bool {
 }
 
 auto pApplication::processEvents() -> void {
-  @autoreleasepool {
-    while(!Application::state().quit) {
+  while(!Application::state().quit) {
+    @autoreleasepool {
       NSEvent* event = [NSApp nextEventMatchingMask:NSAnyEventMask untilDate:[NSDate distantPast] inMode:NSDefaultRunLoopMode dequeue:YES];
       if(event == nil) break;
-      [event retain];
       [NSApp sendEvent:event];
-      [event release];
     }
   }
 }
@@ -105,7 +109,7 @@ auto pApplication::setScreenSaver(bool screenSaver) -> void {
       string reason = {Application::state().name, " screensaver suppression"};
       NSString* assertionName = [NSString stringWithUTF8String:reason.data()];
       if(IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleDisplaySleep,
-        kIOPMAssertionLevelOn, (CFStringRef)assertionName, &powerAssertion
+        kIOPMAssertionLevelOn, (__bridge CFStringRef)assertionName, &powerAssertion
       ) != kIOReturnSuccess) {
         powerAssertion = kIOPMNullAssertionID;
       }

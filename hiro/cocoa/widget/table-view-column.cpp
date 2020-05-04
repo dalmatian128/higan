@@ -5,7 +5,7 @@ namespace hiro {
 auto pTableViewColumn::construct() -> void {
   @autoreleasepool {
     if(auto tableView = _parent()) {
-      [tableView->cocoaView reloadColumns];
+      [tableView->cocoaTableView reloadColumns];
     }
   }
 }
@@ -13,7 +13,7 @@ auto pTableViewColumn::construct() -> void {
 auto pTableViewColumn::destruct() -> void {
   @autoreleasepool {
     if(auto tableView = _parent()) {
-      [tableView->cocoaView reloadColumns];
+      [tableView->cocoaTableView reloadColumns];
     }
   }
 }
@@ -59,9 +59,9 @@ auto pTableViewColumn::setText(const string& text) -> void {
       string label = text;
       if(state().sorting == Sort::Ascending ) label.append(" \u25b4");
       if(state().sorting == Sort::Descending) label.append(" \u25be");
-      NSTableColumn* tableColumn = [[parent->cocoaView content] tableColumnWithIdentifier:[[NSNumber numberWithInteger:self().offset()] stringValue]];
+      NSTableColumn* tableColumn = [[parent->cocoaTableView content] tableColumnWithIdentifier:[[NSNumber numberWithInteger:self().offset()] stringValue]];
       [[tableColumn headerCell] setStringValue:[NSString stringWithUTF8String:label]];
-      [[parent->cocoaView headerView] setNeedsDisplay:YES];
+      [[[parent->cocoaTableView content] headerView] setNeedsDisplay:YES];
     }
   }
 }

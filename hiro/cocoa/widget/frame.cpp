@@ -27,7 +27,7 @@ auto pFrame::construct() -> void {
 auto pFrame::destruct() -> void {
   @autoreleasepool {
     [cocoaView removeFromSuperview];
-    [cocoaView release];
+    cocoaView = cocoaFrame = nil;
   }
 }
 
@@ -44,7 +44,7 @@ auto pFrame::setEnabled(bool enabled) -> void {
 
 auto pFrame::setFont(const Font& font) -> void {
   @autoreleasepool {
-    [cocoaView setTitleFont:pFont::create(font)];
+    [cocoaFrame setTitleFont:pFont::create(font)];
   }
   if(auto& sizable = state().sizable) sizable->setFont(font);
 }
@@ -66,7 +66,7 @@ auto pFrame::setGeometry(Geometry geometry) -> void {
 
 auto pFrame::setText(const string& text) -> void {
   @autoreleasepool {
-    [cocoaView setTitle:[NSString stringWithUTF8String:text]];
+    [cocoaFrame setTitle:[NSString stringWithUTF8String:text]];
   }
 }
 

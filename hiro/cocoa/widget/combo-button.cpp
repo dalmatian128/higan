@@ -31,13 +31,13 @@ auto pComboButton::construct() -> void {
 auto pComboButton::destruct() -> void {
   @autoreleasepool {
     [cocoaView removeFromSuperview];
-    [cocoaView release];
+    cocoaView = cocoaComboButton = nil;
   }
 }
 
 auto pComboButton::append(sComboButtonItem item) -> void {
   @autoreleasepool {
-    [cocoaView addItemWithTitle:[NSString stringWithUTF8String:item->text()]];
+    [cocoaComboButton addItemWithTitle:[NSString stringWithUTF8String:item->text()]];
   }
 }
 
@@ -53,13 +53,13 @@ auto pComboButton::minimumSize() const -> Size {
 
 auto pComboButton::remove(sComboButtonItem item) -> void {
   @autoreleasepool {
-    [cocoaView removeItemAtIndex:item->offset()];
+    [cocoaComboButton removeItemAtIndex:item->offset()];
   }
 }
 
 auto pComboButton::reset() -> void {
   @autoreleasepool {
-    [cocoaView removeAllItems];
+    [cocoaComboButton removeAllItems];
   }
 }
 

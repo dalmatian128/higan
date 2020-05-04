@@ -35,7 +35,7 @@ auto pVerticalSlider::construct() -> void {
 auto pVerticalSlider::destruct() -> void {
   @autoreleasepool {
     [cocoaView removeFromSuperview];
-    [cocoaView release];
+    cocoaView = cocoaVerticalSlider = nil;
   }
 }
 
@@ -52,13 +52,13 @@ auto pVerticalSlider::setGeometry(Geometry geometry) -> void {
 
 auto pVerticalSlider::setLength(u32 length) -> void {
   @autoreleasepool {
-    [cocoaView setMaxValue:length];
+    [cocoaVerticalSlider setMaxValue:length];
   }
 }
 
 auto pVerticalSlider::setPosition(u32 position) -> void {
   @autoreleasepool {
-    [cocoaView setDoubleValue:position];
+    [cocoaVerticalSlider setDoubleValue:position];
   }
 }
 

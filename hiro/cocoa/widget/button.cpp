@@ -36,7 +36,7 @@ auto pButton::construct() -> void {
 auto pButton::destruct() -> void {
   @autoreleasepool {
     [cocoaView removeFromSuperview];
-    [cocoaView release];
+    cocoaView = cocoaButton = nil;
   }
 }
 
@@ -68,20 +68,20 @@ auto pButton::setGeometry(Geometry geometry) -> void {
 
 auto pButton::setIcon(const image& icon) -> void {
   @autoreleasepool {
-    [cocoaView setImage:NSMakeImage(icon)];
+    [cocoaButton setImage:NSMakeImage(icon)];
   }
 }
 
 auto pButton::setOrientation(Orientation orientation) -> void {
   @autoreleasepool {
-    if(orientation == Orientation::Horizontal) [cocoaView setImagePosition:NSImageLeft];
-    if(orientation == Orientation::Vertical  ) [cocoaView setImagePosition:NSImageAbove];
+    if(orientation == Orientation::Horizontal) [cocoaButton setImagePosition:NSImageLeft];
+    if(orientation == Orientation::Vertical  ) [cocoaButton setImagePosition:NSImageAbove];
   }
 }
 
 auto pButton::setText(const string& text) -> void {
   @autoreleasepool {
-    [cocoaView setTitle:[NSString stringWithUTF8String:text]];
+    [cocoaButton setTitle:[NSString stringWithUTF8String:text]];
   }
 }
 

@@ -44,7 +44,7 @@ auto pLineEdit::construct() -> void {
 auto pLineEdit::destruct() -> void {
   @autoreleasepool {
     [cocoaView removeFromSuperview];
-    [cocoaView release];
+    cocoaView = cocoaLineEdit = nil;
   }
 }
 
@@ -58,7 +58,7 @@ auto pLineEdit::setBackgroundColor(Color color) -> void {
 
 auto pLineEdit::setEditable(bool editable) -> void {
   @autoreleasepool {
-    [cocoaView setEditable:editable];
+    [cocoaLineEdit setEditable:editable];
   }
 }
 
@@ -67,7 +67,7 @@ auto pLineEdit::setForegroundColor(Color color) -> void {
 
 auto pLineEdit::setText(const string& text) -> void {
   @autoreleasepool {
-    [cocoaView setStringValue:[NSString stringWithUTF8String:text]];
+    [cocoaLineEdit setStringValue:[NSString stringWithUTF8String:text]];
   }
 }
 
