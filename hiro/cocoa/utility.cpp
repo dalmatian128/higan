@@ -32,7 +32,7 @@ auto NSMakeImage(image icon, u32 scaleWidth = 0, u32 scaleHeight = 0) -> NSImage
 
 auto DropPathsOperation(id<NSDraggingInfo> sender) -> NSDragOperation {
   NSPasteboard* pboard = [sender draggingPasteboard];
-  if([[pboard types] containsObject:NSFilenamesPboardType]) {
+  if([[pboard types] containsObject:NSPasteboardTypeFileURL]) {
     if([sender draggingSourceOperationMask] & NSDragOperationGeneric) {
       return NSDragOperationGeneric;
     }
@@ -43,10 +43,10 @@ auto DropPathsOperation(id<NSDraggingInfo> sender) -> NSDragOperation {
 auto DropPaths(id<NSDraggingInfo> sender) -> vector<string> {
   vector<string> paths;
   NSPasteboard* pboard = [sender draggingPasteboard];
-  if([[pboard types] containsObject:NSFilenamesPboardType]) {
-    NSArray* files = [pboard propertyListForType:NSFilenamesPboardType];
-    for(u32 n = 0; n < [files count]; n++) {
-      string path = [[files objectAtIndex:n] UTF8String];
+  if([[pboard types] containsObject:NSPasteboardTypeFileURL]) {
+    NSURL* url = [NSURL URLFromPasteboard:pboard];
+    if(url != nil) {
+      string path = [[url path] UTF8String];
       if(directory::exists(path) && !path.endsWith("/")) path.append("/");
       paths.append(path);
     }

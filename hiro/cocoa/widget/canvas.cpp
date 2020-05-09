@@ -132,7 +132,7 @@ auto pCanvas::setColor(Color color) -> void {
 auto pCanvas::setDroppable(bool droppable) -> void {
   @autoreleasepool {
     if(droppable) {
-      [cocoaCanvas registerForDraggedTypes:[NSArray arrayWithObject:NSFilenamesPboardType]];
+      [cocoaCanvas registerForDraggedTypes:[NSArray arrayWithObject:NSPasteboardTypeFileURL]];
     } else {
       [cocoaCanvas unregisterDraggedTypes];
     }
