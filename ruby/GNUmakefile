@@ -19,7 +19,7 @@ ifeq ($(ruby),)
 endif
 
 ifeq ($(platform),macos)
-  ruby.flags := $(flags.objcpp)
+  ruby.flags := $(flags.objcpp) -fobjc-arc -fobjc-weak -fobjc-runtime=macosx-10.13
 else
   ruby.flags := $(flags.cpp)
 endif
