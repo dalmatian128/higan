@@ -76,6 +76,9 @@ inline auto image::loadPNG(const u8* pngData, u32 pngSize) -> bool {
       b = source.readbits(sp);
       a = source.readbits(sp);
       break;
+    default:
+      r = g = b = a = 0;
+      break;
     }
 
     a = normalize(a, source.info.bitDepth, _alpha.depth());

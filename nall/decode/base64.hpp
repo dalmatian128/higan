@@ -15,7 +15,7 @@ inline auto Base64(const string& text) -> vector<u8> {
   }
 
   vector<u8> result;
-  u8 buffer, output;
+  u8 buffer = 0, output = 0;
   for(u32 n : range(text.size())) {
     u8 buffer = lookup[text[n]];
 

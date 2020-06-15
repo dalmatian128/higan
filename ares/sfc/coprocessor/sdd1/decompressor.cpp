@@ -162,6 +162,7 @@ auto SDD1::Decompressor::PEM::getBit(n8 context) -> n8 {
   case 5: bit = self.bg5.getBit(endOfRun); break;
   case 6: bit = self.bg6.getBit(endOfRun); break;
   case 7: bit = self.bg7.getBit(endOfRun); break;
+  default: throw std::out_of_range(__func__); break;
   }
 
   if(endOfRun) {

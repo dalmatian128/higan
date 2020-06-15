@@ -39,6 +39,7 @@ auto PPU::Window::render(Color& color, u32 mask, bool output[256]) -> void {
   case 1: set = 1, clear = 0; break;  //inside
   case 2: set = 0, clear = 1; break;  //outside
   case 3: memory::fill<bool>(output, 256, 0); return;  //never
+  default: throw std::out_of_range(__func__); break;
   }
 
   if(!color.oneEnable && !color.twoEnable) {
