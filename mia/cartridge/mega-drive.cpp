@@ -1,3 +1,5 @@
+#include <iconv.h>
+
 struct MegaDrive : Cartridge {
   auto name() -> string override { return "Mega Drive"; }
   auto extensions() -> vector<string> override { return {"md", "smd", "gen", "bin"}; }
@@ -64,9 +66,42 @@ auto MegaDrive::heuristics(vector<u8>& data, string location) -> string {
 
   string domesticName;
   domesticName.resize(48);
+#if 0
   memory::copy(domesticName.get(), &data[0x0120], domesticName.size());
   for(auto& c : domesticName) if(c < 0x20 || c > 0x7e) c = ' ';
   while(domesticName.find("  ")) domesticName.replace("  ", " ");
+#else
+  iconv_t cd = iconv_open("UTF-8", "CP932");
+  if(cd != (iconv_t)-1) {
+    char *inbuf = (char *)&data[0x0120];
+    size_t inbytesleft = 48;
+    char *outbuf = domesticName.get();
+    size_t outbytesleft = domesticName.size();
+    do {
+      size_t ret = iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
+      if(ret == (size_t)-1) {
+        switch(errno) {
+        case E2BIG:
+          domesticName.resize(domesticName.size() + inbytesleft);
+          outbytesleft += inbytesleft;
+          break;
+        case EILSEQ:
+          if(inbytesleft > 0) {
+            inbuf++;
+            inbytesleft--;
+          }
+          break;
+        default:
+          fprintf(stderr, "iconv: errno=%d\n", errno);
+          inbytesleft = 0;
+          break;
+        }
+      }
+    } while(inbytesleft > 0);
+    iconv_close(cd);
+    for(auto& c : domesticName) if(c < 0x20) c = ' ';
+  }
+#endif
   domesticName.strip();
 
   string internationalName;
