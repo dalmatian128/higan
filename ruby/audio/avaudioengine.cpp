@@ -202,7 +202,6 @@ private:
       }
 
       if(_engine != nil) {
-        [[NSNotificationCenter defaultCenter] removeObserver:_observer];
         [_engine stop];
 
         [_engine disconnectNodeOutput:_player];
