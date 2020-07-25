@@ -4,7 +4,7 @@
 using namespace metal;
 
 struct MetalVertexIn {
-  simd_float2 deviceCoordinate;
+  simd_float4 deviceCoordinate;
   simd_float2 textureCoordinate;
 };
 
@@ -30,12 +30,12 @@ struct MetalVertexOut {
 
 // Vertex Function
 vertex MetalVertexOut
-MetalVertexShader(uint vertexID [[ vertex_id ]], constant MetalVertexIn *vertices [[ buffer(0) ]], constant MetalViewport &viewport [[ buffer(1) ]])
+MetalVertexShader(uint id [[ vertex_id ]], constant MetalVertexIn *vertices [[ buffer(0) ]], constant MetalViewport &viewport [[ buffer(1) ]])
 {
   MetalVertexOut out;
-  out.position.xy = vertices[vertexID].deviceCoordinate * viewport.viewportSize / viewport.drawableSize;
-  out.position.zw = simd_float2(0.0, 1.0);
-  out.textureCoordinate = vertices[vertexID].textureCoordinate;
+  out.position.xy = vertices[id].deviceCoordinate.xy * viewport.viewportSize / viewport.drawableSize;
+  out.position.zw = vertices[id].deviceCoordinate.zw;
+  out.textureCoordinate = vertices[id].textureCoordinate;
   return out;
 }
 

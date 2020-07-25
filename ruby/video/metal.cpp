@@ -3,7 +3,7 @@
 
 struct MetalVertex
 {
-  simd_float2 deviceCoordinate;
+  simd_float4 deviceCoordinate;
   simd_float2 textureCoordinate;
 };
 
@@ -167,14 +167,11 @@ private:
   RubyVideoMetalRenderer* _renderer = nullptr;
 
   static constexpr MetalVertex _vertices[] = {
-    // device coordinates, texture coordinates
-    { {  1.0, -1.0 }, { 1.0, 1.0 }, },
-    { { -1.0, -1.0 }, { 0.0, 1.0 }, },
-    { { -1.0,  1.0 }, { 0.0, 0.0 }, },
-
-    { {  1.0, -1.0 }, { 1.0, 1.0 }, },
-    { { -1.0,  1.0 }, { 0.0, 0.0 }, },
-    { {  1.0,  1.0 }, { 1.0, 0.0 }, },
+    // device coordinates, 2D texture coordinates
+    { { -1.0, -1.0, 0.0, 1.0 }, { 0.0, 1.0 }, },
+    { { -1.0,  1.0, 0.0, 1.0 }, { 0.0, 0.0 }, },
+    { {  1.0, -1.0, 0.0, 1.0 }, { 1.0, 1.0 }, },
+    { {  1.0,  1.0, 0.0, 1.0 }, { 1.0, 0.0 }, },
   };
 
   id<MTLTexture> _texture = nil;
@@ -369,7 +366,7 @@ private:
       [renderCommandEncoder setVertexBytes:&viewportBytes length:sizeof(viewportBytes) atIndex:1];
       [renderCommandEncoder setFragmentTexture:texture atIndex:0];
       [renderCommandEncoder setFragmentSamplerState:[self samplerState] atIndex:1];
-      [renderCommandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
+      [renderCommandEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
     }
     [renderCommandEncoder endEncoding];
 
