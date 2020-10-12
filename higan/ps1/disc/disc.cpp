@@ -5,6 +5,7 @@ namespace higan::PlayStation {
 Disc disc;
 #include "drive.cpp"
 #include "cdda.cpp"
+#include "adpcm.cpp"
 #include "io.cpp"
 #include "command.cpp"
 #include "irq.cpp"
@@ -24,6 +25,7 @@ auto Disc::load(Node::Object parent) -> void {
   fifo.parameter.resize(16);
   fifo.response.resize(16);
   fifo.data.resize(2340);
+  fifo.adpcm.resize(2340);
 
   //subclass simulation
   drive.session = session;
@@ -39,6 +41,7 @@ auto Disc::unload() -> void {
   fifo.parameter.reset();
   fifo.response.reset();
   fifo.data.reset();
+  fifo.adpcm.reset();
 
   disconnect();
   tray.reset();
@@ -86,9 +89,15 @@ auto Disc::disconnect() -> void {
 auto Disc::main() -> void {
   counter.sector += 128;
   if(counter.sector >= 451584 >> drive.mode.speed) {
-    //75hz (single speed) or 37.5hz (double speed)
+    //75hz (single speed) or 150hz (double speed)
     counter.sector -= 451584 >> drive.mode.speed;
     drive.clockSector();
+  }
+
+  counter.adpcm += 128;
+  if(counter.adpcm >= cdda.adpcm.clock) {
+    //337.5hz (stereo) or 168.75hz (mono)
+    counter.adpcm -= cdda.adpcm.clock;
     cdda.clockSector();
   }
 

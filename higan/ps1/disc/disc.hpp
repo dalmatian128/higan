@@ -112,6 +112,10 @@ struct Disc : Thread {
     auto clockSector() -> void;
     auto clockSample() -> void;
 
+    //adpcm.cpp
+    auto readBlock(uint portion) -> void;
+    auto decodeBlock() -> void;
+
     enum class PlayMode : uint {
       Normal,
       FastForward,
@@ -122,9 +126,32 @@ struct Disc : Thread {
     uint8 volumeLatch[4];
 
     struct Sample {
-      i16 left;
-      i16 right;
+      double left;
+      double right;
+      DSP::Resampler::Cubic resampler[2];
     } sample;
+
+    struct ADPCM {
+      uint2 stereo;
+      uint2 sampleRate;
+      uint2 bitsPerSample;
+      uint1 emphasis;
+
+      i32 clock;
+
+       u8 data[128];
+      i16 lastSamples[6];
+      i16 currentSamples[2*28];
+    } adpcm;
+
+    struct Block {
+      //header
+      uint4 shift;
+      uint3 filter;
+
+      //samples
+      uint4 brr[28];
+    } block[2];
   } cdda{*this};
 
   struct Event {
@@ -159,6 +186,7 @@ struct Disc : Thread {
     queue<u8> parameter;
     queue<u8> response;
     queue<u8> data;
+    queue<u8> adpcm;
   } fifo;
 
   struct ADPCM {
@@ -186,6 +214,7 @@ struct Disc : Thread {
   struct Counter {
     i32 sector = 0;
     i32 cdda = 0;
+    i32 adpcm = 0;
     i32 report = 0;
   } counter;
 

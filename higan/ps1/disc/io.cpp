@@ -13,7 +13,7 @@ auto Disc::readByte(u32 address) -> u32 {
   if(address == 0x1f80'1800) {
     data.bit(0) = io.index.bit(0);
     data.bit(1) = io.index.bit(1);
-    data.bit(2) = 0;  //XA-ADPCM FIFO (0 = empty)
+    data.bit(2) = !fifo.adpcm.empty();     //0 when empty
     data.bit(3) = fifo.parameter.empty();  //1 when empty
     data.bit(4) = !fifo.parameter.full();  //0 when full
     data.bit(5) = !fifo.response.empty();  //0 when empty
