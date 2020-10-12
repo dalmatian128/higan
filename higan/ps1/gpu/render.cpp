@@ -238,14 +238,22 @@ auto GPU::renderTriangle(Vertex v0, Vertex v1, Vertex v2) -> void {
       if(w2 < 0 || !w2 && !o2) continue;
 
       if constexpr((Flags & Render::Color) != 0) {
-        renderPixelColor(vp, v0);
+        if constexpr((Flags & Render::Alpha) != 0) {
+          renderPixelAlpha(vp, v0);
+        } else {
+          renderPixelColor(vp, v0);
+        }
       }
 
       if constexpr((Flags & Render::Shade) != 0) {
         u8 r = (v0.r * w0 + v1.r * w1 + v2.r * w2) / w;
         u8 g = (v0.g * w0 + v1.g * w1 + v2.g * w2) / w;
         u8 b = (v0.b * w0 + v1.b * w1 + v2.b * w2) / w;
-        renderPixelColor(vp, {r, g, b, 0});
+        if constexpr((Flags & Render::Alpha) != 0) {
+          renderPixelAlpha(vp, {r, g, b, 0});
+        } else {
+          renderPixelColor(vp, {r, g, b, 0});
+        }
       }
 
       if constexpr((Flags & Render::Texel) != 0) {
