@@ -38,6 +38,8 @@ auto System::load(Node::Object& root) -> void {
   disc.load(node);
   controllerPort1.load(node);
   controllerPort2.load(node);
+  memoryCardSlot1.load(node);
+  memoryCardSlot2.load(node);
   interrupt.load(node);
   peripheral.load(node);
   dma.load(node);
@@ -53,6 +55,8 @@ auto System::unload() -> void {
   disc.unload();
   controllerPort1.unload();
   controllerPort2.unload();
+  memoryCardSlot1.unload();
+  memoryCardSlot2.unload();
   interrupt.unload();
   peripheral.unload();
   dma.unload();

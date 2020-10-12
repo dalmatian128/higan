@@ -54,6 +54,16 @@ auto PlayStation::load() -> bool {
     port->connect();
   }
 
+  if(auto port = root->find<higan::Node::Port>("MemoryCard Slot 1")) {
+    port->allocate("flash1.rom");
+    port->connect();
+  }
+
+  if(auto port = root->find<higan::Node::Port>("MemoryCard Slot 2")) {
+    port->allocate("flash2.rom");
+    port->connect();
+  }
+
   return true;
 }
 
@@ -87,6 +97,16 @@ auto PlayStation::open(higan::Node::Object node, string name, vfs::file::mode mo
 
   if(name == "program.exe") {
     return vfs::memory::open(game.image.data(), game.image.size());
+  }
+
+  if(name == "flash1.rom") {
+    auto location = locate(game.location, "_1.mcd", settings.paths.saves);
+    if(auto result = vfs::disk::open(location, mode)) return result;
+  }
+
+  if(name == "flash2.rom") {
+    auto location = locate(game.location, "_2.mcd", settings.paths.saves);
+    if(auto result = vfs::disk::open(location, mode)) return result;
   }
 
   return {};

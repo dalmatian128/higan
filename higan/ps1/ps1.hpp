@@ -41,6 +41,7 @@ namespace higan::PlayStation {
   #include <ps1/system/system.hpp>
   #include <ps1/disc/disc.hpp>
   #include <ps1/controller/controller.hpp>
+  #include <ps1/memorycard/memorycard.hpp>
   #include <ps1/cpu/cpu.hpp>
   #include <ps1/gpu/gpu.hpp>
   #include <ps1/spu/spu.hpp>
