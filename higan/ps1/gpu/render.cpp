@@ -237,28 +237,28 @@ auto GPU::renderTriangle(Vertex v0, Vertex v1, Vertex v2) -> void {
       if(w1 < 0 || !w1 && !o1) continue;
       if(w2 < 0 || !w2 && !o2) continue;
 
-      if constexpr(Flags & Render::Color) {
+      if constexpr((Flags & Render::Color) != 0) {
         renderPixelColor(vp, v0);
       }
 
-      if constexpr(Flags & Render::Shade) {
+      if constexpr((Flags & Render::Shade) != 0) {
         u8 r = (v0.r * w0 + v1.r * w1 + v2.r * w2) / w;
         u8 g = (v0.g * w0 + v1.g * w1 + v2.g * w2) / w;
         u8 b = (v0.b * w0 + v1.b * w1 + v2.b * w2) / w;
         renderPixelColor(vp, {r, g, b});
       }
 
-      if constexpr(Flags & Render::Texel) {
+      if constexpr((Flags & Render::Texel) != 0) {
         u8 u = (v0.u * w0 + v1.u * w1 + v2.u * w2) / w;
         u8 v = (v0.v * w0 + v1.v * w1 + v2.v * w2) / w;
         if(u16 texel = this->texel({u, v})) {
           Color c = Color::from16(texel);
-          if constexpr(Flags & Render::ModulateColor) {
+          if constexpr((Flags & Render::ModulateColor) != 0) {
             c.r = c.r * v0.r >> 7;
             c.g = c.g * v0.g >> 7;
             c.b = c.b * v0.b >> 7;
           }
-          if constexpr(Flags & Render::ModulateShade) {
+          if constexpr((Flags & Render::ModulateShade) != 0) {
             u8 r = (v0.r * w0 + v1.r * w1 + v2.r * w2) / w;
             u8 g = (v0.g * w0 + v1.g * w1 + v2.g * w2) / w;
             u8 b = (v0.b * w0 + v1.b * w1 + v2.b * w2) / w;
@@ -266,7 +266,7 @@ auto GPU::renderTriangle(Vertex v0, Vertex v1, Vertex v2) -> void {
             c.g = c.g * g >> 7;
             c.b = c.b * b >> 7;
           }
-          if constexpr(Flags & Render::Alpha) {
+          if constexpr((Flags & Render::Alpha) != 0) {
             renderPixelAlpha(vp, c);
           } else {
             renderPixelColor(vp, c);
