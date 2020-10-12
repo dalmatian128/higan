@@ -15,8 +15,9 @@ auto SPU::writeRAM(u32 address, u16 data) -> void {
 }
 
 auto SPU::readDMA() -> u32 {
-  print("* SPU DMA read\n");
-  return 0;
+  u32 data = ram.readWord(transfer.current);
+  transfer.current += 4;
+  return data;
 }
 
 auto SPU::writeDMA(u32 data) -> void {
