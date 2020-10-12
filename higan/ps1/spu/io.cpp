@@ -24,9 +24,12 @@ auto SPU::writeDMA(u32 data) -> void {
     if(fifo.full()) break;
     fifo.write(u16(data));
     data >>= 16;
-    if(fifo.full() && irq.enable) {
-      irq.flag = 1;
-      interrupt.raise(Interrupt::SPU);
+    if(fifo.full()) {
+      if(irq.enable) {
+        irq.flag = 1;
+        interrupt.raise(Interrupt::SPU);
+      }
+      fifoManualWrite();
     }
   }
 }
