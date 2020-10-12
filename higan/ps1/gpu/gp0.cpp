@@ -343,7 +343,20 @@ auto GPU::writeGP0(u32 value) -> void {
   //copy rectangle (VRAM to VRAM)
   if(command == 0x80) {
     if(queue.write(value) < 4) return;
-    debug(unimplemented, "GPU copy VRAM to VRAM");
+    u16 sx     = (queue.data[1].bit( 0,15) & 1023);
+    u16 sy     = (queue.data[1].bit(16,31) &  511);
+    u16 tx     = (queue.data[2].bit( 0,15) & 1023);
+    u16 ty     = (queue.data[2].bit(16,31) &  511);
+    u16 width  = (queue.data[3].bit( 0,15) - 1 & 1023) + 1;
+    u16 height = (queue.data[3].bit(16,31) - 1 &  511) + 1;
+    for(uint y : range(height)) {
+      u32 source = sx + (sy + y)*1024;
+      u32 target = tx + (ty + y)*1024;
+      for([[maybe_unused]] uint x : range(width)) {
+        u16 data = vram.readHalf(source++ << 1);
+        vram.writeHalf(target++ << 1, data);
+      }
+    }
     return queue.reset();
   }
 
