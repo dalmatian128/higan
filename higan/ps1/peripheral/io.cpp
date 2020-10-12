@@ -7,6 +7,8 @@ auto Peripheral::readByte(u32 address) -> u32 {
       data = io.receiveData;
       io.receiveData >>= 8;
       io.receiveSize--;
+    } else {
+      data = 0xff;
     }
   }
 
@@ -31,7 +33,10 @@ auto Peripheral::readHalf(u32 address) -> u32 {
     data.bit(0) = io.transmitStarted;
     data.bit(1) = io.receiveSize > 0;
     data.bit(2) = io.transmitFinished;
+    data.bit(3) = io.receiveParityError;
     data.bit(7) = io.acknowledgeLine == 0;
+    data.bit(9) = io.interrupt;
+    data.bit(11,15) = io.baudrateTimer;
   }
 
   //JOY_MODE
@@ -94,7 +99,8 @@ auto Peripheral::writeByte(u32 address, u32 value) -> void {
   //JOY_TX_DATA
   if(address == 0x1f80'1040) {
     io.transmitData = data;
-    io.receiveEnable = 1;
+    io.transmitSize = 1;
+    io.transmitStarted = io.transmitEnable;
   }
 
 //print("* wb", hex(address, 8L), " = ", hex(data, 2L), "\n");
@@ -132,34 +138,21 @@ auto Peripheral::writeHalf(u32 address, u32 value) -> void {
     io.unknownCtrl_14_15          = data.bit(14,15);
 
     if(io.acknowledge || io.reset) {
+      io.receiveParityError = 0;
       io.acknowledgeLine = 0;
+      io.interrupt = 0;
       interrupt.lower(Interrupt::Peripheral);
     }
 
-    if(io.transmitEnable) {
-      io.transmitStarted = 1;
-      if(io.transmitData == 0x01) {
-        io.mode = IO::Mode::ControllerAccess;
-        io.counter = 340;
-      } else if(io.transmitData == 0x42) {
-        io.mode = IO::Mode::ControllerIDLower;
-        io.counter = 340;
-      } else if(io.transmitData == 0x00 && io.mode == IO::Mode::ControllerIDLower) {
-        io.mode = IO::Mode::ControllerIDUpper;
-        io.counter = 340;
-      } else if(io.transmitData == 0x00 && io.mode == IO::Mode::ControllerIDUpper) {
-        io.mode = IO::Mode::ControllerDataLower;
-        io.counter = 340;
-      } else if(io.transmitData == 0x00 && io.mode == IO::Mode::ControllerDataLower) {
-        io.mode = IO::Mode::ControllerDataUpper;
-        io.counter = 340;
-      }
+    if(!io.joyOutput) {
+      io.device = IO::Device::Null;
     }
   }
 
   //JOY_BAUD
   if(address == 0x1f80'104e) {
     io.baudrateReloadValue = data.bit(0,15);
+    io.baudrateTimer = io.baudrateReloadValue;
   }
 
 //print("* wh", hex(address, 8L), " = ", hex(data, 4L), "\n");

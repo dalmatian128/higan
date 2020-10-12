@@ -26,12 +26,16 @@ struct Peripheral : Thread {
      uint8 receiveSize;
 
     //JOY_TX_DATA
-     uint8 transmitData;
+    uint64 transmitData;
+     uint8 transmitSize;
 
     //JOY_STAT
      uint1 transmitStarted = 1;
      uint1 transmitFinished = 1;
+     uint1 receiveParityError;
      uint1 acknowledgeLine;
+     uint1 interrupt;
+    uint21 baudrateTimer;
 
     //JOY_MODE
      uint2 baudrateReloadFactor;
@@ -62,16 +66,82 @@ struct Peripheral : Thread {
     uint16 baudrateReloadValue;
 
     //internal
-    enum class Mode : uint {
-      Idle,
-      ControllerAccess,
-      ControllerIDLower,
-      ControllerIDUpper,
-      ControllerDataLower,
-      ControllerDataUpper,
-    } mode = Mode::Idle;
+    enum class Device : uint {
+      Null,
+      Controller = 0x01,
+      MemoryCard = 0x81,
+    } device = Device::Null;
+
      int32 counter;
   } io;
+
+  //controller.cpp
+  struct Controller {
+    Peripheral& self;
+    Controller(Peripheral& self) : self(self) {}
+
+    auto chipSelect(u8 data) -> bool;
+    auto transmit(u8 data) -> bool;
+    auto receive() -> bool;
+
+    auto access() -> void;
+    auto button() -> void;
+
+    struct IO {
+      enum class Mode : uint {
+        Idle,
+        ControllerAccess,
+        ControllerIDLower,
+        ControllerIDUpper,
+        ControllerDataLower,
+        ControllerDataUpper,
+      } mode = Mode::ControllerAccess;
+
+       uint8 command;
+       uint8 data;
+    } io;
+  } controller{*this};
+
+  //memorycard.cpp
+  struct MemoryCard {
+    Peripheral& self;
+    MemoryCard(Peripheral& self) : self(self) {}
+
+    auto chipSelect(u8 data) -> bool;
+    auto transmit(u8 data) -> bool;
+    auto receive() -> bool;
+
+    auto access() -> void;
+    auto read() -> void;
+    auto write() -> void;
+
+    struct IO {
+      enum class Mode : uint {
+        Idle,
+        MemoryCardAccess,
+        MemoryCardCommand,
+        MemoryCardIDLower,
+        MemoryCardIDUpper,
+        MemoryCardCommandAddressMSB,
+        MemoryCardCommandAddressLSB,
+        MemoryCardAckLower,
+        MemoryCardAckUpper,
+        MemoryCardComfirmAddressMSB,
+        MemoryCardComfirmAddressLSB,
+        MemoryCardData,
+        MemoryCardChecksum,
+        MemoryCardEndByte,
+      } mode = Mode::Idle;
+
+       uint8 command;
+       uint8 data;
+       uint8 dataPre;
+       uint8 checksum;
+      uint16 sector;
+       int32 offset;
+       uint8 eCode;
+    } io;
+  } memoryCard{*this};
 };
 
 extern Peripheral peripheral;
