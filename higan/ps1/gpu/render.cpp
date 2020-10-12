@@ -83,7 +83,7 @@ auto GPU::renderPixelAlpha(Point point, Color above) -> void {
   u32 address = (point.y & 511) * 1024 + (point.x & 1023);
   u16 data = vram.readHalf(address * 2);
 
-  if(data & 0x8000) {
+  if constexpr(1) {
     Color below = Color::from16(data);
     switch(io.semiTransparency) {
     case 0:
@@ -245,7 +245,7 @@ auto GPU::renderTriangle(Vertex v0, Vertex v1, Vertex v2) -> void {
         u8 r = (v0.r * w0 + v1.r * w1 + v2.r * w2) / w;
         u8 g = (v0.g * w0 + v1.g * w1 + v2.g * w2) / w;
         u8 b = (v0.b * w0 + v1.b * w1 + v2.b * w2) / w;
-        renderPixelColor(vp, {r, g, b});
+        renderPixelColor(vp, {r, g, b, 0});
       }
 
       if constexpr((Flags & Render::Texel) != 0) {
@@ -267,7 +267,11 @@ auto GPU::renderTriangle(Vertex v0, Vertex v1, Vertex v2) -> void {
             c.b = min(255, c.b * b >> 7);
           }
           if constexpr((Flags & Render::Alpha) != 0) {
-            renderPixelAlpha(vp, c);
+            if(c.a) {
+              renderPixelAlpha(vp, c);
+            } else {
+              renderPixelColor(vp, c);
+            }
           } else {
             renderPixelColor(vp, c);
           }

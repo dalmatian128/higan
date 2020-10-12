@@ -147,21 +147,22 @@ struct GPU : Thread {
   struct Color {
     static auto from16(u16 data) -> Color {
       return {
-        (data >>  0 & 31) << 3 | (data >>  0 & 31) >> 2,
-        (data >>  5 & 31) << 3 | (data >>  5 & 31) >> 2,
-        (data >> 10 & 31) << 3 | (data >> 10 & 31) >> 2
+        u8((data >>  0 & 31) << 3 | (data >>  0 & 31) >> 2),
+        u8((data >>  5 & 31) << 3 | (data >>  5 & 31) >> 2),
+        u8((data >> 10 & 31) << 3 | (data >> 10 & 31) >> 2),
+        u8((data >> 15 &  1) * 255)
       };
     }
 
     static auto to16(u32 data) -> u16 {
-      return (data >> 3 & 0x1f) << 0 | (data >> 11 & 0x1f) << 5 | (data >> 19 & 0x1f) << 10;
+      return (data >> 3 & 0x1f) << 0 | (data >> 11 & 0x1f) << 5 | (data >> 19 & 0x1f) << 10 | (data >> 31 & 0x01) << 15;
     }
 
     auto to16() const -> u16 {
-      return {(r >> 3) << 0 | (g >> 3) << 5 | (b >> 3) << 10};
+      return (r >> 3) << 0 | (g >> 3) << 5 | (b >> 3) << 10 | (a >> 7) << 15;
     }
 
-    u8 r, g, b;
+    u8 r, g, b, a;
   };
 
   struct Vertex : Point, Texel, Color {
@@ -193,6 +194,7 @@ struct GPU : Thread {
       r = u8(data >>  0);
       g = u8(data >>  8);
       b = u8(data >> 16);
+      a = 0;
       return *this;
     }
 
@@ -200,6 +202,7 @@ struct GPU : Thread {
       r = cr;
       g = cg;
       b = cb;
+      a = 0;
       return *this;
     }
   };
