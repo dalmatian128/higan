@@ -254,17 +254,17 @@ auto GPU::renderTriangle(Vertex v0, Vertex v1, Vertex v2) -> void {
         if(u16 texel = this->texel({u, v})) {
           Color c = Color::from16(texel);
           if constexpr((Flags & Render::ModulateColor) != 0) {
-            c.r = c.r * v0.r >> 7;
-            c.g = c.g * v0.g >> 7;
-            c.b = c.b * v0.b >> 7;
+            c.r = min(255, c.r * v0.r >> 7);
+            c.g = min(255, c.g * v0.g >> 7);
+            c.b = min(255, c.b * v0.b >> 7);
           }
           if constexpr((Flags & Render::ModulateShade) != 0) {
             u8 r = (v0.r * w0 + v1.r * w1 + v2.r * w2) / w;
             u8 g = (v0.g * w0 + v1.g * w1 + v2.g * w2) / w;
             u8 b = (v0.b * w0 + v1.b * w1 + v2.b * w2) / w;
-            c.r = c.r * r >> 7;
-            c.g = c.g * g >> 7;
-            c.b = c.b * b >> 7;
+            c.r = min(255, c.r * r >> 7);
+            c.g = min(255, c.g * g >> 7);
+            c.b = min(255, c.b * b >> 7);
           }
           if constexpr((Flags & Render::Alpha) != 0) {
             renderPixelAlpha(vp, c);
