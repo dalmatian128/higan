@@ -67,6 +67,11 @@ auto GPU::renderPixelColor(Point point, Color color) -> void {
   if(point.y > io.drawingAreaOriginY2) return;
 
   u32 address = (point.y & 511) * 1024 + (point.x & 1023);
+  if(io.forceMaskBit) color.a = 255;
+  if(io.checkMaskBit) {
+    u16 data = vram.readHalf(address * 2);
+    if(data & 0x8000) return;
+  }
   vram.writeHalf(address * 2, dither(point, color).to16());
 }
 
@@ -82,6 +87,9 @@ auto GPU::renderPixelAlpha(Point point, Color above) -> void {
 
   u32 address = (point.y & 511) * 1024 + (point.x & 1023);
   u16 data = vram.readHalf(address * 2);
+
+  if(io.forceMaskBit) above.a = 255;
+  if(io.checkMaskBit) if(data & 0x8000) return;
 
   if constexpr(1) {
     Color below = Color::from16(data);

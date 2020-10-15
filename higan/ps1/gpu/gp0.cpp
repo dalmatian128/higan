@@ -22,11 +22,25 @@ auto GPU::readGP0() -> u32 {
 }
 
 auto GPU::writeGP0(u32 value) -> void {
+  auto forceMask = [&]() -> u16 {
+    return io.forceMaskBit && !io.colorDepth ? 0x8000 : 0;
+  };
+
+  auto checkMask = [&](u32 address) -> bool {
+    if(io.checkMaskBit) {
+      u16 data = vram.readHalf(address);
+      if(data & 0x8000) return true;
+    }
+    return false;
+  };
+
   if(io.mode == Mode::CopyToVRAM) {
+    u16 mask = forceMask();
     for(uint loop : range(2)) {
       uint10 x = io.copy.x + io.copy.px;
        uint9 y = io.copy.y + io.copy.py;
-      vram.writeHalf((y * 1024 + x) * 2, value);
+      u32 address = (y * 1024 + x) * 2;
+      if(!checkMask(address)) vram.writeHalf(address, value | mask);
       value >>= 16;
       if(++io.copy.px >= io.copy.width) {
         io.copy.px = 0;
@@ -349,12 +363,18 @@ auto GPU::writeGP0(u32 value) -> void {
     u16 ty     = (queue.data[2].bit(16,31) &  511);
     u16 width  = (queue.data[3].bit( 0,15) - 1 & 1023) + 1;
     u16 height = (queue.data[3].bit(16,31) - 1 &  511) + 1;
+    u16 mask   = forceMask();
     for(uint y : range(height)) {
       u32 source = sx + (sy + y)*1024;
       u32 target = tx + (ty + y)*1024;
       for([[maybe_unused]] uint x : range(width)) {
-        u16 data = vram.readHalf(source++ << 1);
-        vram.writeHalf(target++ << 1, data);
+        if(!checkMask(source)) {
+          u16 data = vram.readHalf(source++ << 1);
+          vram.writeHalf(target++ << 1, data | mask);
+        } else {
+          source++;
+          target++;
+        }
       }
     }
     return queue.reset();
