@@ -80,10 +80,10 @@ auto GPU::writeGP0(u32 value) -> void {
   if(command == 0x02) {
     if(queue.write(value) < 3) return;
     uint16 color  = Color::to16(queue.data[0].bit(0,23));
-    uint16 x      = queue.data[1].bit( 0,15);
-    uint16 y      = queue.data[1].bit(16,31);
-    uint16 width  = queue.data[2].bit( 0,15);
-    uint16 height = queue.data[2].bit(16,31);
+    uint16 x      = (queue.data[1].bit( 0,15) & 1023) & ~15;
+    uint16 y      = (queue.data[1].bit(16,31) & 511);
+    uint16 width  = (queue.data[2].bit( 0,15) & 1023) + 15 & ~15;
+    uint16 height = (queue.data[2].bit(16,31) & 511);
     for(uint py : range(height)) {
       for(uint px : range(width)) {
         vram.writeHalf(((y + py) * 1024 + (x + px)) * 2, color);
