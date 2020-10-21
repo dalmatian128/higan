@@ -62,8 +62,8 @@ auto SPU::sample() -> void {
   }
   noise.update();
   auto [lfb, rfb] = reverb.process(sclamp<16>(lreverb), sclamp<16>(rreverb));
-  lsum = amplify(sclamp<16>(lsum + lfb), volume[0].level) * master.mute;
-  rsum = amplify(sclamp<16>(rsum + rfb), volume[1].level) * master.mute;
+  lsum = amplify(sclamp<16>(lsum + lfb), volume[0].level << 1) * master.mute;
+  rsum = amplify(sclamp<16>(rsum + rfb), volume[1].level << 1) * master.mute;
   stream->sample(lsum / 32768.0, rsum / 32768.0);
 }
 

@@ -44,8 +44,8 @@ auto SPU::Voice::sample(i16 modulation) -> std::pair<i32, i32> {
     }
   }
 
-  l = amplify(volume, this->volume[0].level);
-  r = amplify(volume, this->volume[1].level);
+  l = amplify(volume, this->volume[0].level << 1);
+  r = amplify(volume, this->volume[1].level << 1);
   //todo: sweep
   return {l, r};
 }
