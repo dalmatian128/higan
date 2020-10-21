@@ -240,6 +240,9 @@ auto SPU::readHalf(u32 address) -> u32 {
     data.bit(4,5) = transfer.mode;
     data.bit(6)   = irq.flag;
     data.bit(7)   = transfer.mode.bit(1);
+    data.bit(8)   = transfer.mode == 2 ? 1 : 0;
+    data.bit(9)   = transfer.mode == 3 ? 1 : 0;
+    data.bit(10)  = fifo.pending();
   }
 
   //CD-DA volume left
