@@ -107,6 +107,7 @@ auto SPU::Voice::keyOff() -> void {
 
 auto SPU::Voice::keyOn() -> void {
   kon = 0;
+  endx = 0;
   adpcm.currentAddress = adpcm.startAddress & ~15;
   adpcm.hasSamples = 0;
   adpcm.ignoreLoopAddress = 0;
