@@ -112,11 +112,16 @@ auto Disc::main() -> void {
     if(counter.report <= 0) {
       counter.report += 33'868'800 / 75;
 
+      maybe<uint8_t> trackID = {};
+      maybe<uint8_t> indexID = {};
       int lba = drive.lba.current;
-      if(auto trackID = session.inTrack(lba)) {
+      uint8_t flag = (lba % 75) & 0x10 ? 1 << 7 : 0;
+      if(trackID = session.inTrack(lba)) {
         if(auto track = session.track(*trackID)) {
-          if(auto index = track->index(1)) {
-            lba -= index->lba;
+          if(indexID = track->inIndex(lba)) {
+            if(auto index = track->index(*indexID)) {
+              if(flag) lba -= index->lba;
+            }
           }
         }
       }
@@ -124,10 +129,10 @@ auto Disc::main() -> void {
 
       fifo.response.flush();
       fifo.response.write(status());
-      fifo.response.write(0x01);
-      fifo.response.write(0x01);
+      fifo.response.write(CD::BCD::encode(*trackID));
+      fifo.response.write(CD::BCD::encode(*indexID));
       fifo.response.write(0x00 | CD::BCD::encode(minute));
-      fifo.response.write(0x80 | CD::BCD::encode(second));
+      fifo.response.write(flag | CD::BCD::encode(second));
       fifo.response.write(0x00 | CD::BCD::encode(frame));
       fifo.response.write(0x00);  //peak lo
       fifo.response.write(0x00);  //peak hi
