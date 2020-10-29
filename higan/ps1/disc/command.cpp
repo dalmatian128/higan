@@ -80,7 +80,7 @@ auto Disc::commandSetLocation() -> void {
 auto Disc::commandPlay() -> void {
   maybe<u8> trackID;
   if(fifo.parameter.size()) {
-    trackID = fifo.parameter.read();
+    trackID = CD::BCD::decode(fifo.parameter.read());
   }
 
   if(trackID) {
@@ -293,7 +293,7 @@ auto Disc::commandGetFirstAndLastTrackNumbers() -> void {
 auto Disc::commandGetTrackStart() -> void {
   u8 trackID = 0;
   if(fifo.parameter.size()) {
-    trackID = fifo.parameter.read();
+    trackID = CD::BCD::decode(fifo.parameter.read());
   }
 
   int lba = 0;
