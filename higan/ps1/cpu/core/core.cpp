@@ -64,8 +64,7 @@ auto CPU::instruction() -> void {
 
 auto CPU::instructionEpilogue() -> bool {
   if(delay.load.target) {
-    *delay.load.target &= delay.load.mask;
-    *delay.load.target |= delay.load.source;
+    *delay.load.target = delay.load.source;
     delay.load.target = nullptr;
   }
 

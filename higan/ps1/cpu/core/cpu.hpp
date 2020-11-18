@@ -29,7 +29,6 @@
     struct {
       u32* target = nullptr;
       u32  source = 0;
-      u32  mask = 0;
     } load, fetch, write;
 
     //branch delay slot
@@ -47,10 +46,12 @@
     } branch;
   } delay;
 
-  auto fetch(u32& target, u32 source, u32 mask = 0) -> void {
+  auto fetch(u32& target, u32 source) -> void {
+    if(delay.load.target == &target) {
+      delay.load.target = nullptr;
+    }
     delay.fetch.target = &target;
     delay.fetch.source =  source;
-    delay.fetch.mask   =  mask;
   }
 
   auto write(u32& target, u32 source) -> void {
