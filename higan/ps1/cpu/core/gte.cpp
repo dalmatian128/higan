@@ -19,11 +19,11 @@ auto CPU::GTE::getDataRegister(uint index) -> u32 {
   u32 data;
   switch(index) {
   case  0: data = u16(v.a.x) << 0 | u16(v.a.y) << 16; break;
-  case  1: data = u16(v.a.z) << 0; break;
+  case  1: data = i16(v.a.z) << 0; break;
   case  2: data = u16(v.b.x) << 0 | u16(v.b.y) << 16; break;
-  case  3: data = u16(v.b.z) << 0; break;
+  case  3: data = i16(v.b.z) << 0; break;
   case  4: data = u16(v.c.x) << 0 | u16(v.c.y) << 16; break;
-  case  5: data = u16(v.c.z) << 0; break;
+  case  5: data = i16(v.c.z) << 0; break;
   case  6: data = rgbc.r << 0 | rgbc.g << 8 | rgbc.b << 16 | rgbc.t << 24; break;
   case  7: data = otz; break;
   case  8: data = ir.t; break;
@@ -34,10 +34,10 @@ auto CPU::GTE::getDataRegister(uint index) -> u32 {
   case 13: data = u16(screen[1].x) << 0 | u16(screen[1].y) << 16; break;
   case 14: data = u16(screen[2].x) << 0 | u16(screen[2].y) << 16; break;
   case 15: data = u16(screen[2].x) << 0 | u16(screen[2].y) << 16; break;  //not screen[3]
-  case 16: data = screen[0].z; break;
-  case 17: data = screen[1].z; break;
-  case 18: data = screen[2].z; break;
-  case 19: data = screen[3].z; break;
+  case 16: data = u16(screen[0].z); break;
+  case 17: data = u16(screen[1].z); break;
+  case 18: data = u16(screen[2].z); break;
+  case 19: data = u16(screen[3].z); break;
   case 20: data = rgb[0]; break;
   case 21: data = rgb[1]; break;
   case 22: data = rgb[2]; break;
@@ -93,8 +93,12 @@ auto CPU::GTE::setDataRegister(uint index, u32 data) -> void {
   case 25: mac.x = data; break;
   case 26: mac.y = data; break;
   case 27: mac.z = data; break;
-  case 28: irgb = data; break;
-  case 29: orgb = data; break;
+  case 28:
+    ir.r = (data >>  0 & 31) << 7;
+    ir.g = (data >>  5 & 31) << 7;
+    ir.b = (data >> 10 & 31) << 7;
+    break;
+  case 29: break;
   case 30: {
     // FIXME: This result shouldn't be available instantly,
     // most games put two NOPs before reading the result.
@@ -113,7 +117,7 @@ auto CPU::GTE::getControlRegister(uint index) -> u32 {
   case  1: data = u16(rotation.a.z) << 0 | u16(rotation.b.x) << 16; break;
   case  2: data = u16(rotation.b.y) << 0 | u16(rotation.b.z) << 16; break;
   case  3: data = u16(rotation.c.x) << 0 | u16(rotation.c.y) << 16; break;
-  case  4: data = u16(rotation.c.z) << 0; break;
+  case  4: data = i16(rotation.c.z) << 0; break;
   case  5: data = translation.x; break;
   case  6: data = translation.y; break;
   case  7: data = translation.z; break;
@@ -121,7 +125,7 @@ auto CPU::GTE::getControlRegister(uint index) -> u32 {
   case  9: data = u16(light.a.z) << 0 | u16(light.b.x) << 16; break;
   case 10: data = u16(light.b.y) << 0 | u16(light.b.z) << 16; break;
   case 11: data = u16(light.c.x) << 0 | u16(light.c.y) << 16; break;
-  case 12: data = u16(light.c.z) << 0; break;
+  case 12: data = i16(light.c.z) << 0; break;
   case 13: data = backgroundColor.r; break;
   case 14: data = backgroundColor.g; break;
   case 15: data = backgroundColor.b; break;
@@ -129,13 +133,13 @@ auto CPU::GTE::getControlRegister(uint index) -> u32 {
   case 17: data = u16(color.a.z) << 0 | u16(color.b.x) << 16; break;
   case 18: data = u16(color.b.y) << 0 | u16(color.b.z) << 16; break;
   case 19: data = u16(color.c.x) << 0 | u16(color.c.y) << 16; break;
-  case 20: data = u16(color.c.z) << 0; break;
+  case 20: data = i16(color.c.z) << 0; break;
   case 21: data = farColor.r; break;
   case 22: data = farColor.g; break;
   case 23: data = farColor.b; break;
   case 24: data = ofx; break;
   case 25: data = ofy; break;
-  case 26: data = h; break;
+  case 26: data = i16(h); break;
   case 27: data = dqa; break;
   case 28: data = dqb; break;
   case 29: data = zsf3; break;
@@ -178,7 +182,7 @@ auto CPU::GTE::setControlRegister(uint index, u32 data) -> void {
   case 28: dqb = data; break;
   case 29: zsf3 = data; break;
   case 30: zsf4 = data; break;
-  case 31: flag.value = data & 0xffff'f000; break;
+  case 31: flag.value = data & 0x7fff'f000; updateError(); break;
   }
 }
 
@@ -236,7 +240,7 @@ auto CPU::GTE::saturate(i32 value, bool lm) -> i32 {
 }
 
 template<uint id>
-auto CPU::GTE::saturateRGB(i32 value) -> u32 {
+auto CPU::GTE::saturateRGB(i32 value) -> u8 {
   if(value < 0 || value > 255) {
     if constexpr(id == 0) flag.r_saturated = 1;
     if constexpr(id == 1) flag.g_saturated = 1;
@@ -289,8 +293,8 @@ auto CPU::GTE::setOtz(i64 value) -> void {
 
 auto CPU::GTE::matrixMultiply(const m16& matrix, const v16& vector, const v32& translation) -> v64 {
   i64 x = extend<1>(extend<1>(extend<1>((i64(translation.x) << 12) + matrix.a.x * vector.x) + matrix.a.y * vector.y) + matrix.a.z * vector.z);
-  i64 y = extend<1>(extend<1>(extend<1>((i64(translation.y) << 12) + matrix.b.x * vector.x) + matrix.b.y * vector.y) + matrix.b.z * vector.z);
-  i64 z = extend<1>(extend<1>(extend<1>((i64(translation.z) << 12) + matrix.c.x * vector.x) + matrix.c.y * vector.y) + matrix.c.z * vector.z);
+  i64 y = extend<2>(extend<2>(extend<2>((i64(translation.y) << 12) + matrix.b.x * vector.x) + matrix.b.y * vector.y) + matrix.b.z * vector.z);
+  i64 z = extend<3>(extend<3>(extend<3>((i64(translation.z) << 12) + matrix.c.x * vector.x) + matrix.c.y * vector.y) + matrix.c.z * vector.z);
   return {x, y, z};
 }
 
@@ -315,7 +319,7 @@ auto CPU::GTE::divide(u32 lhs, u32 rhs) -> u32 {
   i32 x = i32(0x101 + unsignedNewtonRaphsonTable[(divisor & 0x7fff) + 0x40 >> 7]);
   i32 d = i32(divisor) * -x + 0x80 >> 8;
   u32 reciprocal = x * (0x20000 + d) + 0x80 >> 8;
-  u32 result = u64(lhs) * reciprocal + 0x8000 >> 16;
+  u64 result = u64(lhs) * reciprocal + 0x8000 >> 16;
   return min(0x1ffff, result);
 }
 
@@ -344,10 +348,10 @@ auto CPU::GTE::pushScreenZ(i32 sz) -> void {
   screen[3].z = sz;
 }
 
-auto CPU::GTE::pushColor(u32 r, u32 g, u32 b) -> void {
-  r = saturateRGB<1>(r);
-  g = saturateRGB<2>(g);
-  b = saturateRGB<3>(b);
+auto CPU::GTE::pushColor(i32 r, i32 g, i32 b) -> void {
+  r = saturateRGB<0>(r);
+  g = saturateRGB<1>(g);
+  b = saturateRGB<2>(b);
 
   rgb[0] = rgb[1];
   rgb[1] = rgb[2];
@@ -415,9 +419,9 @@ auto CPU::GTE::dpcs() -> void {
 }
 
 auto CPU::GTE::dpct() -> void {
-  dpc({rgb[0] << 4, rgb[1] << 4, rgb[2] << 4});
-  dpc({rgb[0] << 4, rgb[1] << 4, rgb[2] << 4});
-  dpc({rgb[0] << 4, rgb[1] << 4, rgb[2] << 4});
+  dpc({i16((rgb[0] >> 0 & 255) << 4), i16((rgb[0] >> 8 & 255) << 4), i16((rgb[0] >> 16 & 255) << 4)});
+  dpc({i16((rgb[0] >> 0 & 255) << 4), i16((rgb[0] >> 8 & 255) << 4), i16((rgb[0] >> 16 & 255) << 4)});
+  dpc({i16((rgb[0] >> 0 & 255) << 4), i16((rgb[0] >> 8 & 255) << 4), i16((rgb[0] >> 16 & 255) << 4)});
 }
 
 auto CPU::GTE::gpf() -> void {
@@ -438,9 +442,9 @@ auto CPU::GTE::intpl() -> void {
   setMacAndIr<2>((i64(farColor.g) << 12) - (i64(i.y) << 12));
   setMacAndIr<3>((i64(farColor.b) << 12) - (i64(i.z) << 12));
 
-  setMacAndIr<1>((i64(ir.t) << 12) + ir.x * i.x, lm);
-  setMacAndIr<2>((i64(ir.t) << 12) + ir.y * i.y, lm);
-  setMacAndIr<3>((i64(ir.t) << 12) + ir.z * i.z, lm);
+  setMacAndIr<1>((i64(i.x) << 12) + ir.x * ir.t, lm);
+  setMacAndIr<2>((i64(i.y) << 12) + ir.y * ir.t, lm);
+  setMacAndIr<3>((i64(i.z) << 12) + ir.z * ir.t, lm);
 
   pushColor();
 }
@@ -575,8 +579,8 @@ auto CPU::GTE::rtp(v16 vector, bool last) -> void {
 
   pushScreenZ(result.z >> 12);
   i64 dv = divide(h, screen[3].z);
-  i32 sx = setMac<0>(dv * ir.x + ofx);
-  i32 sy = setMac<0>(dv * ir.y + ofy);
+  i64 sx = setMac<0>(dv * ir.x + ofx);
+  i64 sy = setMac<0>(dv * ir.y + ofy);
   pushScreenX(sx >> 16);
   pushScreenY(sy >> 16);
   if(!last) return;

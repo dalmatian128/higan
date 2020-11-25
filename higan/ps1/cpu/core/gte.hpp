@@ -59,7 +59,7 @@
     template<uint> auto check(i64 value) -> i64;
     template<uint> auto extend(i64 mac) -> i64;
     template<uint> auto saturate(i32 value, bool lm = 0) -> i32;
-    template<uint> auto saturateRGB(i32 value) -> u32;
+    template<uint> auto saturateRGB(i32 value) -> u8;
 
     template<uint> auto setMac(i64 value) -> i64;
     template<uint> auto setIr(i32 value, bool lm = 0) -> void;
@@ -73,7 +73,7 @@
     auto pushScreenX(i32 sx) -> void;
     auto pushScreenY(i32 sy) -> void;
     auto pushScreenZ(i32 sz) -> void;
-    auto pushColor(u32 r, u32 g, u32 b) -> void;
+    auto pushColor(i32 r, i32 g, i32 b) -> void;
     auto pushColor() -> void;
 
     auto avsz3() -> void;
