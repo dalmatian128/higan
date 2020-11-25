@@ -100,9 +100,9 @@ auto CPU::GTE::setDataRegister(uint index, u32 data) -> void {
     // most games put two NOPs before reading the result.
     lzcs = data;
     if(lzcs < 0) data ^= 0xffffffff;
-    lzcr = __builtin_clz(data);
+    lzcr = data == 0 ? 32 : __builtin_clz(data);
   } break;
-  case 31: lzcr = data; break;
+  case 31: break;
   }
 }
 

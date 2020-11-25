@@ -110,7 +110,8 @@
     u32  rgb[4];           //RGB3 is reserved
     v32t mac;
     u32  irgb, orgb;
-    u32  lzcs, lzcr;
+    i32  lzcs;
+    u32  lzcr;
     m16  rotation;         //RT1, RT2, RT3
     v32  translation;      //TRX, TRY, TRZ
     m16  light;            //L1,  L2,  L3
