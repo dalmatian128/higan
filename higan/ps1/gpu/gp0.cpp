@@ -106,9 +106,9 @@ auto GPU::writeGP0(u32 value) -> void {
   //textured triangle
   if(command == 0x24 || command == 0x25 || command == 0x26 || command == 0x27) {
     if(queue.write(value) < 7) return;
-    auto v0 = Vertex().setColor(0).setPoint(queue.data[1]).setTexel(queue.data[2]);
-    auto v1 = Vertex().setColor(0).setPoint(queue.data[3]).setTexel(queue.data[4]);
-    auto v2 = Vertex().setColor(0).setPoint(queue.data[5]).setTexel(queue.data[6]);
+    auto v0 = Vertex().setColor(queue.data[0]).setPoint(queue.data[1]).setTexel(queue.data[2]);
+    auto v1 = Vertex().setColor(queue.data[0]).setPoint(queue.data[3]).setTexel(queue.data[4]);
+    auto v2 = Vertex().setColor(queue.data[0]).setPoint(queue.data[5]).setTexel(queue.data[6]);
     setPalette(queue.data[2]);
     setPage(queue.data[4]);
     if(command == 0x24) renderTriangle<Render::Texel | Render::ModulateColor>(v0, v1, v2);
