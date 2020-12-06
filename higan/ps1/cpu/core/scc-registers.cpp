@@ -11,6 +11,10 @@ auto CPU::getControlRegister(u8 index) -> u32 {
     data.bit(0,31) = scc.breakpointDataAddress;
     break;
 
+  case  6:  //Target Address
+    data.bit(0,31) = scc.targetAddress;
+    break;
+
   case  7:  //Breakpoint Control
   //todo
     break;
@@ -82,6 +86,10 @@ auto CPU::setControlRegister(u8 index, u32 value) -> void {
 
   case  5:  //Breakpoint Data Address
     scc.breakpointDataAddress = data;
+    break;
+
+  case  6:  //Target Address
+    //scc.targetAddress = data;  //read-only
     break;
 
   case  7:  //Breakpoint Control

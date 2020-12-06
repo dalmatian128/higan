@@ -25,6 +25,7 @@ auto CPU::raiseException(uint code, u32 address) -> void {
   if(scc.cause.branchDelay = delay.branch.inDelaySlot()) {
     scc.epc = PC - 4;
     scc.cause.branchTaken = delay.branch.condition;
+    scc.targetAddress = scc.cause.branchTaken ? delay.branch.pc : PC + 4;
   } else {
     scc.epc = PC;
     scc.cause.branchTaken = 0;

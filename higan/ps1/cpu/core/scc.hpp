@@ -18,6 +18,9 @@
     // 5: Breakpoint Data Address
     u32 breakpointDataAddress = 0;
 
+    // 6: Target Address
+    u32 targetAddress = 0;
+
     // 7: Breakpoint Control
 
     // 8: Bad Virtual Address
