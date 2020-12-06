@@ -32,13 +32,18 @@ auto CPU::instruction() -> void {
   auto address = PC;
 
   if(auto interrupts = scc.cause.interruptPending & scc.status.interruptMask) {
-    if(interrupt.line & scc.status.frame[0].interruptEnable) {
-      if(debugger.tracer.interrupt->enabled()) {
-        debugger.interrupt(hex(scc.cause.interruptPending, 2L));
+    if(scc.status.frame[0].interruptEnable) {
+      if(interrupt.delay) {
+        interrupt.delay--;
+      } else {
+        if(debugger.tracer.interrupt->enabled()) {
+          debugger.interrupt(hex(scc.cause.interruptPending, 2L));
+        }
+        raiseException(0);
+        instructionEpilogue();
+        step(1);
+        return;
       }
-      scc.cause.interruptPending = interrupts;
-      step(1);
-      return raiseException(0);
     }
   }
 

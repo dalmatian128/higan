@@ -5,6 +5,13 @@
 
   //System Control Coprocessor
   struct SCC {
+    auto interruptPending() -> bool {
+      if(cause.interruptPending & status.interruptMask) {
+        if(status.frame[0].interruptEnable) return true;
+      }
+      return false;
+    }
+
     // 3: Breakpoint Execute Address
     u32 breakpointExecuteAddress = 0;
 

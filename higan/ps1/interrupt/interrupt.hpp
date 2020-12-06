@@ -31,6 +31,7 @@ struct Interrupt {
     uint1 mask = 0;
   };
 
+  u8     delay = 0;
   uint1  line = 0;
   Source vblank;
   Source gpu;

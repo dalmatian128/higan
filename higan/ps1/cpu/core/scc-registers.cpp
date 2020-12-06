@@ -99,7 +99,8 @@ auto CPU::setControlRegister(u8 index, u32 value) -> void {
     scc.breakpointExecuteMask = data;
     break;
 
-  case 12:  //Status
+  case 12: {  //Status
+    auto pending = scc.interruptPending();
     scc.status.frame[0].interruptEnable = data.bit( 0);
     scc.status.frame[0].userMode        = data.bit( 1);
     scc.status.frame[1].interruptEnable = data.bit( 2);
@@ -119,7 +120,8 @@ auto CPU::setControlRegister(u8 index, u32 value) -> void {
     scc.status.enable.coprocessor1      = data.bit(29);
     scc.status.enable.coprocessor2      = data.bit(30);
     scc.status.enable.coprocessor3      = data.bit(31);
-    break;
+    if(!pending && scc.interruptPending()) interrupt.delay = 1;
+    } break;
 
   case 13:  //Cause
     scc.cause.interruptPending.bit(0) = data.bit(8);

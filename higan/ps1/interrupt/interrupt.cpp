@@ -27,7 +27,9 @@ auto Interrupt::poll() -> void {
   line |= sio.stat & sio.mask;
   line |= spu.stat & spu.mask;
   line |= pio.stat & pio.mask;
+  auto pending = cpu.scc.interruptPending();
   cpu.scc.cause.interruptPending.bit(2) = line;
+  if(!pending && cpu.scc.interruptPending()) delay = 1;
 }
 
 auto Interrupt::raise(uint source) -> void {
