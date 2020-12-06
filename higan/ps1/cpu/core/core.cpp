@@ -10,7 +10,7 @@
 
 #define PC core.pc
 
-auto CPU::raiseException(uint code, uint coprocessor) -> void {
+auto CPU::raiseException(uint code) -> void {
   if(debugger.tracer.exception->enabled()) {
     if(code != 0) debugger.exception(hex(code, 2L));
   }
@@ -21,7 +21,7 @@ auto CPU::raiseException(uint code, uint coprocessor) -> void {
 
   scc.epc = PC;
   scc.cause.exceptionCode = code;
-  scc.cause.coprocessorError = coprocessor;
+  scc.cause.coprocessorError = pipeline.instruction >> 26;
   if(scc.cause.branchDelay = delay.branch.inDelaySlot()) scc.epc -= 4;
 
   PC = !scc.status.vectorLocation ? 0x8000'0080 : 0xbfc0'0180;

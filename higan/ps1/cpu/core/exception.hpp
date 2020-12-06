@@ -11,10 +11,10 @@
     auto systemCall() { self.raiseException(8); }
     auto breakpoint() { self.raiseException(9); }
     auto reservedInstruction() { self.raiseException(10); }
-    auto coprocessor0() { self.raiseException(11, 0); }
-    auto coprocessor1() { self.raiseException(11, 1); }
-    auto coprocessor2() { self.raiseException(11, 2); }
-    auto coprocessor3() { self.raiseException(11, 3); }
+    auto coprocessor0() { self.raiseException(11); }
+    auto coprocessor1() { self.raiseException(11); }
+    auto coprocessor2() { self.raiseException(11); }
+    auto coprocessor3() { self.raiseException(11); }
     auto arithmeticOverflow() { self.raiseException(12); }
     auto trap() { self.raiseException(13); }
     auto floatingPoint() { self.raiseException(15); }
