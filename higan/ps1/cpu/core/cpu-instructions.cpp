@@ -30,37 +30,37 @@ auto CPU::instructionANDI(u32& rt, cu32& rs, u16 imm) -> void {
 }
 
 auto CPU::instructionBEQ(cu32& rs, cu32& rt, i16 imm) -> void {
-  if(rs == rt) branch(PC + 4 + (imm << 2));
+  branch(PC + 4 + (imm << 2), rs == rt);
 }
 
 auto CPU::instructionBGEZ(ci32& rs, i16 imm) -> void {
-  if(rs >= 0) branch(PC + 4 + (imm << 2));
+  branch(PC + 4 + (imm << 2), rs >= 0);
 }
 
 auto CPU::instructionBGEZAL(ci32& rs, i16 imm) -> void {
   RA = PC + 8;
-  if(rs >= 0) branch(PC + 4 + (imm << 2));
+  branch(PC + 4 + (imm << 2), rs >= 0);
 }
 
 auto CPU::instructionBGTZ(ci32& rs, i16 imm) -> void {
-  if(rs > 0) branch(PC + 4 + (imm << 2));
+  branch(PC + 4 + (imm << 2), rs > 0);
 }
 
 auto CPU::instructionBLEZ(ci32& rs, i16 imm) -> void {
-  if(rs <= 0) branch(PC + 4 + (imm << 2));
+  branch(PC + 4 + (imm << 2), rs <= 0);
 }
 
 auto CPU::instructionBLTZ(ci32& rs, i16 imm) -> void {
-  if(rs < 0) branch(PC + 4 + (imm << 2));
+  branch(PC + 4 + (imm << 2), rs < 0);
 }
 
 auto CPU::instructionBLTZAL(ci32& rs, i16 imm) -> void {
   RA = PC + 8;
-  if(rs < 0) branch(PC + 4 + (imm << 2));
+  branch(PC + 4 + (imm << 2), rs < 0);
 }
 
 auto CPU::instructionBNE(cu32& rs, cu32& rt, i16 imm) -> void {
-  if(rs != rt) branch(PC + 4 + (imm << 2));
+  branch(PC + 4 + (imm << 2), rs != rt);
 }
 
 auto CPU::instructionBREAK() -> void {

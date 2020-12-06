@@ -94,9 +94,13 @@ auto CPU::instructionEpilogue() -> bool {
     delay.branch.delaySlot();
     return 0;
   case Delay::Branch::DelaySlot:
-    PC = delay.branch.pc;
+    if(delay.branch.condition) {
+      PC = delay.branch.pc;
+      instructionHook();
+    } else {
+      PC += 4;
+    }
     delay.branch.reset();
-    instructionHook();
     return 1;
   case Delay::Branch::Exception:
     delay.branch.reset();

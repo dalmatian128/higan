@@ -41,6 +41,7 @@
       auto delaySlot() -> void { state = DelaySlot; }
       auto exception() -> void { state = Exception; }
 
+      bool condition = true;
       u32 pc = 0;
       u32 state = Step;
     } branch;
@@ -59,7 +60,8 @@
     delay.write.source =  source;
   }
 
-  auto branch(u32 address) -> void {
+  auto branch(u32 address, bool condition = true) -> void {
+    delay.branch.condition = condition;
     delay.branch.take(address);
   }
 
