@@ -118,7 +118,7 @@ auto CPU::instructionLBU(u32& rt, cu32& rs, i16 imm) -> void {
 
 auto CPU::instructionLH(u32& rt, cu32& rs, i16 imm) -> void {
   if constexpr(Accuracy::CPU::AlignmentErrors) {
-    if(unlikely(rs + imm & 1)) return exception.addressLoad();
+    if(unlikely(rs + imm & 1)) return exception.addressLoad(rs + imm);
   }
   auto data = readHalf(rs + imm);
   fetch(rt, i16(data));
@@ -126,7 +126,7 @@ auto CPU::instructionLH(u32& rt, cu32& rs, i16 imm) -> void {
 
 auto CPU::instructionLHU(u32& rt, cu32& rs, i16 imm) -> void {
   if constexpr(Accuracy::CPU::AlignmentErrors) {
-    if(unlikely(rs + imm & 1)) return exception.addressLoad();
+    if(unlikely(rs + imm & 1)) return exception.addressLoad(rs + imm);
   }
   auto data = readHalf(rs + imm);
   fetch(rt, u16(data));
@@ -138,7 +138,7 @@ auto CPU::instructionLUI(u32& rt, u16 imm) -> void {
 
 auto CPU::instructionLW(u32& rt, cu32& rs, i16 imm) -> void {
   if constexpr(Accuracy::CPU::AlignmentErrors) {
-    if(unlikely(rs + imm & 3)) return exception.addressLoad();
+    if(unlikely(rs + imm & 3)) return exception.addressLoad(rs + imm);
   }
   auto data = readWord(rs + imm);
   fetch(rt, i32(data));

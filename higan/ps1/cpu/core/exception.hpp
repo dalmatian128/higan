@@ -4,7 +4,7 @@
     auto tlbModification() { self.raiseException(1); }
     auto tlbLoad() { self.raiseException(2); }
     auto tlbStore() { self.raiseException(3); }
-    auto addressLoad() { self.raiseException(4); }
+    auto addressLoad(u32 address) { self.raiseException(4, address); }
     auto addressStore() { self.raiseException(5); }
     auto busInstruction() { self.raiseException(6); }
     auto busData() { self.raiseException(7); }

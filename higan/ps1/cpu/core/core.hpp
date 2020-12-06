@@ -1,6 +1,6 @@
 //{
   //core.cpp
-  auto raiseException(uint) -> void;
+  auto raiseException(uint, u32 = 0) -> void;
   auto instruction() -> void;
   auto instructionEpilogue() -> bool;
   auto instructionHook() -> void;

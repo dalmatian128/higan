@@ -10,7 +10,7 @@
 
 #define PC core.pc
 
-auto CPU::raiseException(uint code) -> void {
+auto CPU::raiseException(uint code, u32 address) -> void {
   if(debugger.tracer.exception->enabled()) {
     if(code != 0) debugger.exception(hex(code, 2L));
   }
@@ -20,6 +20,7 @@ auto CPU::raiseException(uint code) -> void {
   scc.status.frame[0] = {};
 
   scc.epc = PC;
+  if(address) scc.badVirtualAddress = address;
   scc.cause.exceptionCode = code;
   scc.cause.coprocessorError = pipeline.instruction >> 26;
   if(scc.cause.branchDelay = delay.branch.inDelaySlot()) scc.epc -= 4;
