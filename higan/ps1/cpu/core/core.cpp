@@ -19,11 +19,16 @@ auto CPU::raiseException(uint code, u32 address) -> void {
   scc.status.frame[1] = scc.status.frame[0];
   scc.status.frame[0] = {};
 
-  scc.epc = PC;
   if(address) scc.badVirtualAddress = address;
   scc.cause.exceptionCode = code;
   scc.cause.coprocessorError = pipeline.instruction >> 26;
-  if(scc.cause.branchDelay = delay.branch.inDelaySlot()) scc.epc -= 4;
+  if(scc.cause.branchDelay = delay.branch.inDelaySlot()) {
+    scc.epc = PC - 4;
+    scc.cause.branchTaken = delay.branch.condition;
+  } else {
+    scc.epc = PC;
+    scc.cause.branchTaken = 0;
+  }
 
   PC = !scc.status.vectorLocation ? 0x8000'0080 : 0xbfc0'0180;
   delay.branch.exception();

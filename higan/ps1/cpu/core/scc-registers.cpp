@@ -53,6 +53,7 @@ auto CPU::getControlRegister(u8 index) -> u32 {
     data.bit( 2, 6) = scc.cause.exceptionCode;
     data.bit( 8,15) = scc.cause.interruptPending;
     data.bit(28,29) = scc.cause.coprocessorError;
+    data.bit(30)    = scc.cause.branchTaken;
     data.bit(31)    = scc.cause.branchDelay;
     break;
 

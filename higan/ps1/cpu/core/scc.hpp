@@ -59,6 +59,7 @@
       uint5 exceptionCode = 0;
       uint8 interruptPending = 0x00;
       uint2 coprocessorError = 0;
+      uint1 branchTaken = 0;
       uint1 branchDelay = 0;
     } cause;
 
