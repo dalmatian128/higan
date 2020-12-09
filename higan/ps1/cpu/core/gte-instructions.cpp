@@ -1,5 +1,5 @@
 auto CPU::instructionCFC2(u32& rt, u8 rd) -> void {
-  rt = gte.getControlRegister(rd);
+  fetch(rt, gte.getControlRegister(rd));
 }
 
 auto CPU::instructionCTC2(cu32& rt, u8 rd) -> void {
@@ -7,7 +7,7 @@ auto CPU::instructionCTC2(cu32& rt, u8 rd) -> void {
 }
 
 auto CPU::instructionMFC2(u32& rt, u8 rd) -> void {
-  rt = gte.getDataRegister(rd);
+  fetch(rt, gte.getDataRegister(rd));
 }
 
 auto CPU::instructionMTC2(cu32& rt, u8 rd) -> void {
