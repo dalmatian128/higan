@@ -106,6 +106,13 @@ auto GPU::writeGP0(u32 value) -> void {
     return queue.reset();
   }
 
+  //interrupt request
+  case 0x1f: {
+    io.interrupt = 1;
+    interrupt.raise(Interrupt::GPU);
+    return;
+  }
+
   //monochrome triangle
   if(command == 0x20 || command == 0x21 || command == 0x22 || command == 0x23) {
     if(queue.write(value) < 4) return;

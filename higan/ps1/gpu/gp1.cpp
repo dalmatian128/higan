@@ -49,6 +49,7 @@ auto GPU::writeGP1(u32 value) -> void {
   //acknowledge interrupt
   if(command == 0x02) {
     io.interrupt = 0;
+    interrupt.lower(Interrupt::GPU);
     return;
   }
 
