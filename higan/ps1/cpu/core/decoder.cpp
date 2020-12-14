@@ -33,11 +33,11 @@ auto CPU::decoderGTE() -> void {
 }
 
 auto CPU::instructionCOP1() -> void {
-  exception.coprocessor1();
+  if(!scc.status.enable.coprocessor1) exception.coprocessor1();
 }
 
 auto CPU::instructionCOP3() -> void {
-  exception.coprocessor3();
+  if(!scc.status.enable.coprocessor3) exception.coprocessor3();
 }
 
 auto CPU::instructionINVALID() -> void {
