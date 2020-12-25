@@ -112,17 +112,56 @@ auto GPU::renderPixelAlpha(Point point, Color above) -> void {
   vram.writeHalf(address * 2, dither(point, above).to16());
 }
 
-auto GPU::renderSolidLine(Point p0, Point p1, Color c) -> void {
-  Point d = {p1.x - p0.x, p1.y - p0.y};
-  i32 steps = abs(d.x) > abs(d.y) ? abs(d.x) : abs(d.y);
-  Point s = {(d.x << 16) / steps, (d.y << 16) / steps};
-  Point p = {p0.x << 16, p0.y << 16};
+template<uint Flags>
+auto GPU::renderSolidLine(Vertex v0, Vertex v1) -> void {
+  Point d = {abs(v1.x - v0.x), abs(v1.y - v0.y)};
+  Point s = {v0.x < v1.x ? 1 : -1, v0.y < v1.y ? 1 : -1};
+  Point vp = {v0.x, v0.y};
+  i32 e = d.x - d.y;
 
-  for(u16 step : range(steps)) {
-    renderPixelColor({p.x >> 16, p.y >> 16}, c);
-    p.x += s.x;
-    p.y += s.y;
+  Point cd;
+  i32 w;
+  if constexpr((Flags & Render::Shade) != 0) {
+    cd = {v1.x - v0.x, v1.y - v0.y};
+    w = cd.x * cd.x + cd.y * cd.y;
+    if(!w) w = 1;
   }
+
+  u32 limit = 800;  //prevents potential infinite loop
+  do {
+    if constexpr((Flags & Render::Color) != 0) {
+      if constexpr((Flags & Render::Alpha) != 0) {
+        renderPixelAlpha(vp, v0);
+      } else {
+        renderPixelColor(vp, v0);
+      }
+    }
+
+    if constexpr((Flags & Render::Shade) != 0) {
+      i32 w0 = cd.x * (v1.x - vp.x) + cd.y * (v1.y - vp.y);
+      i32 w1 = cd.x * (vp.x - v0.x) + cd.y * (vp.y - v0.y);
+      u8 r = (v0.r * w0 + v1.r * w1) / w;
+      u8 g = (v0.g * w0 + v1.g * w1) / w;
+      u8 b = (v0.b * w0 + v1.b * w1) / w;
+      if constexpr((Flags & Render::Alpha) != 0) {
+        renderPixelAlpha(vp, {r, g, b, 0});
+      } else {
+        renderPixelColor(vp, {r, g, b, 0});
+      }
+    }
+
+    if(vp.x == v1.x && vp.y == v1.y) break;
+
+    i32 e2 = 2 * e;
+    if(e2 >= -d.y) {
+      e -= d.y;
+      vp.x += s.x;
+    }
+    if(e2 <=  d.x) {
+      e += d.x;
+      vp.y += s.y;
+    }
+  } while(--limit);
 }
 
 //#define RENDER_DDA

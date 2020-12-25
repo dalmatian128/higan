@@ -196,6 +196,58 @@ auto GPU::writeGP0(u32 value) -> void {
     return queue.reset();
   }
 
+  //monochrome line
+  if(command == 0x40 || command == 0x41 || command == 0x42 || command == 0x43) {
+    if(queue.write(value) < 3) return;
+    auto v0 = Vertex().setColor(queue.data[0]).setPoint(queue.data[1]);
+    auto v1 = Vertex().setColor(queue.data[0]).setPoint(queue.data[2]);
+    if(command == 0x40 || command == 0x41) renderSolidLine<Render::Color>(v0, v1);
+    if(command == 0x42 || command == 0x43) renderSolidLine<Render::Color | Render::Alpha>(v0, v1);
+    return queue.reset();
+  }
+
+  //monochrome polyline
+  if(command == 0x48 || command == 0x4a || command == 0x4c || command == 0x4e) {
+    if(value == 0x5555'5555 || value == 0x5000'5000) return queue.reset();
+    if(queue.write(value) < 3) return;
+    auto v0 = Vertex().setColor(queue.data[0]).setPoint(queue.data[1]);
+    auto v1 = Vertex().setColor(queue.data[0]).setPoint(queue.data[2]);
+    if(command == 0x48 || command == 0x4c) renderSolidLine<Render::Color>(v0, v1);
+    if(command == 0x4a || command == 0x4e) renderSolidLine<Render::Color | Render::Alpha>(v0, v1);
+    u32 color = queue.data[0];
+    u32 point = queue.data[2];
+    queue.reset();
+    queue.write(color);
+    queue.write(point);
+    return;
+  }
+
+  //shaded line
+  if(command == 0x50 || command == 0x51 || command == 0x52 || command == 0x53) {
+    if(queue.write(value) < 4) return;
+    auto v0 = Vertex().setColor(queue.data[0]).setPoint(queue.data[1]);
+    auto v1 = Vertex().setColor(queue.data[2]).setPoint(queue.data[3]);
+    if(command == 0x50 || command == 0x51) renderSolidLine<Render::Shade>(v0, v1);
+    if(command == 0x52 || command == 0x53) renderSolidLine<Render::Shade | Render::Alpha>(v0, v1);
+    return queue.reset();
+  }
+
+  //shaded polyline
+  if(command == 0x58 || command == 0x5a || command == 0x5c || command == 0x5e) {
+    if(value == 0x5555'5555 || value == 0x5000'5000) return queue.reset();
+    if(queue.write(value) < 4) return;
+    auto v0 = Vertex().setColor(queue.data[0]).setPoint(queue.data[1]);
+    auto v1 = Vertex().setColor(queue.data[2]).setPoint(queue.data[3]);
+    if(command == 0x58 || command == 0x5c) renderSolidLine<Render::Shade>(v0, v1);
+    if(command == 0x5a || command == 0x5e) renderSolidLine<Render::Shade | Render::Alpha>(v0, v1);
+    u32 color = queue.data[2];
+    u32 point = queue.data[3];
+    queue.reset();
+    queue.write(color);
+    queue.write(point);
+    return;
+  }
+
   //monochrome rectangle (variable size)
   if(command == 0x60 || command == 0x61 || command == 0x62 || command == 0x63) {
     if(queue.write(value) < 3) return;

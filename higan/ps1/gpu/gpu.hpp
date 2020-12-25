@@ -238,7 +238,7 @@ struct GPU : Thread {
   auto dither(Point p, Color c) const -> Color;
   auto renderPixelColor(Point p, Color c) -> void;
   auto renderPixelAlpha(Point P, Color c) -> void;
-  auto renderSolidLine(Point p0, Point p1, Color c) -> void;
+  template<uint Flags> auto renderSolidLine(Vertex v0, Vertex v1) -> void;
   template<uint Flags> auto renderTriangle(Vertex v0, Vertex v1, Vertex v2) -> void;
   template<uint Flags> auto renderQuadrilateral(Vertex v0, Vertex v1, Vertex v2, Vertex v3) -> void;
   template<uint Flags> auto renderRectangle(Vertex v0, Size sz) -> void;
