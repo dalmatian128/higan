@@ -159,7 +159,9 @@ inline auto spinloop() -> void {
 }
 
 #if defined(PLATFORM_MACOS)
-  #define MSG_NOSIGNAL 0
+  #if __DARWIN_C_LEVEL < 200809L
+    #define MSG_NOSIGNAL 0
+  #endif /* __DARWIN_C_LEVEL */
 #endif
 
 #if defined(COMPILER_CLANG) || defined(COMPILER_GCC)
