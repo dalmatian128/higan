@@ -5,13 +5,15 @@ namespace ares::PlayStation {
 Disc disc;
 #include "drive.cpp"
 #include "cdda.cpp"
+#include "cdxa.cpp"
 #include "io.cpp"
 #include "command.cpp"
 #include "irq.cpp"
+#include "debugger.cpp"
 #include "serialization.cpp"
 
 auto Disc::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("PlayStation");
+  node = parent->append<Node::Object>("PlayStation");
 
   tray = node->append<Node::Port>("Disc Tray");
   tray->setFamily("PlayStation");
@@ -21,24 +23,22 @@ auto Disc::load(Node::Object parent) -> void {
   tray->setConnect([&] { return connect(); });
   tray->setDisconnect([&] { return disconnect(); });
 
-  fifo.parameter.resize(16);
-  fifo.response.resize(16);
-  fifo.data.resize(2340);
-
   //subclass simulation
   drive.session = session;
   drive.cdda = cdda;
+  drive.cdxa = cdxa;
   cdda.drive = drive;
+  cdxa.drive = drive;
 
   cdda.load(node);
+  cdxa.load(node);
+  debugger.load(node);
 }
 
 auto Disc::unload() -> void {
-  cdda.unload();
-
-  fifo.parameter.reset();
-  fifo.response.reset();
-  fifo.data.reset();
+  debugger = {};
+  cdda.unload(node);
+  cdxa.unload(node);
 
   disconnect();
   tray.reset();
@@ -60,19 +60,20 @@ auto Disc::connect() -> void {
   auto document = BML::unserialize(information.manifest);
   information.name = document["game/label"].string();
   information.region = document["game/region"].string();
+  information.audio = (bool)document["game/audio"];
   information.executable = (bool)document["game/executable"];
 
   if(!executable()) {
     fd = platform->open(cd, "cd.rom", File::Read, File::Required);
     if(!fd) return disconnect();
 
-    //read disc TOC (table of contents)
-    uint sectors = fd->size() / 2448;
-    vector<uint8_t> subchannel;
+    //read TOC (table of contents) from disc lead-in
+    u32 sectors = fd->size() / 2448;
+    vector<u8> subchannel;
     subchannel.resize(sectors * 96);
-    for(uint sector : range(sectors)) {
+    for(u32 sector : range(sectors)) {
       fd->seek(sector * 2448 + 2352);
-      fd->read(subchannel.data() + sector * 96, 96);
+      fd->read({subchannel.data() + sector * 96, 96});
     }
     session.decode(subchannel, 96);
   }
@@ -81,6 +82,7 @@ auto Disc::connect() -> void {
 auto Disc::disconnect() -> void {
   fd.reset();
   cd.reset();
+  information = {};
 }
 
 auto Disc::main() -> void {
@@ -89,7 +91,6 @@ auto Disc::main() -> void {
     //75hz (single speed) or 37.5hz (double speed)
     counter.sector -= 451584 >> drive.mode.speed;
     drive.clockSector();
-    cdda.clockSector();
   }
 
   counter.cdda += 128;
@@ -99,11 +100,24 @@ auto Disc::main() -> void {
     cdda.clockSample();
   }
 
+  counter.cdxa += 128;
+  if(counter.cdxa >= 896) {
+    //37800hz
+    counter.cdxa -= 896;
+    cdxa.clockSample();
+  }
+
   if(event.counter > 0) {
     event.counter -= 128;
     if(event.counter <= 0) {
       event.counter = 0;
       command(event.command);
+      if(!event.counter && event.queued) {
+        event.command = event.queued;
+        event.counter = 50'000;
+        event.invocation = 0;
+        event.queued = 0;
+      }
     }
   }
 
@@ -112,42 +126,95 @@ auto Disc::main() -> void {
     if(counter.report <= 0) {
       counter.report += 33'868'800 / 75;
 
-      int lba = drive.lba.current;
+      s32 lba = drive.lba.current;
+      s32 lbaTrack = 0;
+      u8  inTrack = 0;
+      u8  inIndex = 0;
       if(auto trackID = session.inTrack(lba)) {
-        if(auto track = session.track(*trackID)) {
-          if(auto index = track->index(1)) {
-            lba -= index->lba;
+        inTrack = *trackID;
+        if(auto track = session.track(inTrack)) {
+          if(auto indexID = track->inIndex(lba)) {
+            inIndex = *indexID;
+            if(auto index = track->index(1)) {
+              lbaTrack = index->lba;
+            }
           }
         }
       }
-      auto [minute, second, frame] = CD::MSF::fromLBA(lba);
 
-      fifo.response.flush();
-      fifo.response.write(status());
-      fifo.response.write(0x01);
-      fifo.response.write(0x01);
-      fifo.response.write(0x00 | CD::BCD::encode(minute));
-      fifo.response.write(0x80 | CD::BCD::encode(second));
-      fifo.response.write(0x00 | CD::BCD::encode(frame));
-      fifo.response.write(0x00);  //peak lo
-      fifo.response.write(0x00);  //peak hi
+      auto [aminute, asecond, aframe] = CD::MSF::fromLBA(lba);
+      auto [rminute, rsecond, rframe] = CD::MSF::fromLBA(lba - lbaTrack);
 
-      irq.ready.flag = 1;
-      irq.poll();
+      //sectors  0, 20, 40, 60 report absolute time
+      //sectors 10, 30, 50, 70 report relative time
+      //note: bad sector reads report immediately; but bad sectors are not emulated
+      u8 frameBCD = CD::BCD::encode(aframe);
+      if((frameBCD & 15) == 0) {
+        bool relative = frameBCD & 16;
+
+        fifo.response.write(status());
+        fifo.response.write(CD::BCD::encode(inTrack));
+        fifo.response.write(CD::BCD::encode(inIndex));
+        fifo.response.write(CD::BCD::encode((!relative ? aminute : rminute)));
+        fifo.response.write(CD::BCD::encode((!relative ? asecond : rsecond)) | relative << 7);
+        fifo.response.write(CD::BCD::encode((!relative ? aframe  : rframe )));
+        fifo.response.write(0xff);  //todo: peak lo
+        fifo.response.write(0x7f | relative << 7);  //todo: peak hi + left/right channel
+
+        irq.ready.flag = 1;
+        irq.poll();
+      }
     }
   }
 
   step(128);
 }
 
-auto Disc::step(uint clocks) -> void {
+auto Disc::step(u32 clocks) -> void {
   Thread::clock += clocks;
 }
 
 auto Disc::power(bool reset) -> void {
   Thread::reset();
-  event = {};
+  Memory::Interface::setWaitStates(7, 13, 25);
+
+  drive.lba.current = 0;
+  drive.lba.request = 0;
+  drive.lba.seeking = 0;
+  for(auto& v : drive.sector.data) v = 0;
+  drive.sector.offset = 0;
+  drive.mode = {};
+  drive.seeking = 0;
+  audio = {};
+  //configure for stereo sound at 100% volume level
+  audio.volume[0] = audio.volumeLatch[0] = 0x80;
+  audio.volume[1] = audio.volumeLatch[1] = 0x00;
+  audio.volume[2] = audio.volumeLatch[2] = 0x00;
+  audio.volume[3] = audio.volumeLatch[3] = 0x80;
+  cdda.playMode = CDDA::PlayMode::Normal;
+  cdda.sample.left = 0;
+  cdda.sample.right = 0;
+  cdxa.filter = {};
+  cdxa.sample.left = 0;
+  cdxa.sample.right = 0;
+  cdxa.monaural = 0;
+  cdxa.samples.flush();
+  for(auto& v : cdxa.previousSamples) v = 0;
+  event.command = 0;
+  event.counter = 0;
+  event.invocation = 0;
+  event.queued = 0;
+  irq = {};
+  fifo.parameter.flush();
+  fifo.response.flush();
+  fifo.data.flush();
+  psr = {};
+  ssr = {};
   io = {};
+  counter.sector = 0;
+  counter.cdda = 0;
+  counter.cdxa = 0;
+  counter.report = 0;
 }
 
 }

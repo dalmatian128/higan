@@ -9,18 +9,25 @@
 
 namespace ares::MasterSystem {
   #include <ares/inline.hpp>
+  auto enumerate() -> vector<string>;
+  auto load(Node::System& node, string name) -> bool;
 
   struct Model {
+    inline static auto MarkIII() -> bool;
+    inline static auto MasterSystemI() -> bool;
+    inline static auto MasterSystemII() -> bool;
     inline static auto MasterSystem() -> bool;
     inline static auto GameGear() -> bool;
   };
 
   struct Region {
-    inline static auto NTSC() -> bool;
+    inline static auto NTSCJ() -> bool;
+    inline static auto NTSCU() -> bool;
     inline static auto PAL() -> bool;
   };
 
   #include <ms/controller/controller.hpp>
+  #include <ms/expansion/expansion.hpp>
 
   #include <ms/cpu/cpu.hpp>
   #include <ms/vdp/vdp.hpp>
@@ -30,5 +37,3 @@ namespace ares::MasterSystem {
   #include <ms/system/system.hpp>
   #include <ms/cartridge/cartridge.hpp>
 }
-
-#include <ms/interface/interface.hpp>

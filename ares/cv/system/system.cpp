@@ -2,35 +2,72 @@
 
 namespace ares::ColecoVision {
 
+auto enumerate() -> vector<string> {
+  return {
+    "[Coleco] ColecoVision (NTSC)",
+    "[Coleco] ColecoVision (PAL)",
+    "[Coleco] ColecoAdam (NTSC)",
+    "[Coleco] ColecoAdam (PAL)",
+  };
+}
+
+auto load(Node::System& node, string name) -> bool {
+  if(!enumerate().find(name)) return false;
+  return system.load(node, name);
+}
+
 Scheduler scheduler;
 System system;
 #include "controls.cpp"
 #include "serialization.cpp"
 
-auto System::run() -> void {
-  if(scheduler.enter() == Event::Frame) {
-    vdp.refresh();
-    controls.poll();
+auto System::game() -> string {
+  if(cartridge.node) {
+    return cartridge.name();
   }
+
+  return "(no cartridge connected)";
 }
 
-auto System::load(Node::Object& root) -> void {
+auto System::run() -> void {
+  scheduler.enter();
+  controls.poll();
+}
+
+auto System::load(Node::System& root, string name) -> bool {
   if(node) unload();
 
   information = {};
-  if(interface->name() == "ColecoVision") information.model = Model::ColecoVision;
-  if(interface->name() == "ColecoAdam"  ) information.model = Model::ColecoAdam;
+  if(name.find("ColecoVision")) {
+    information.name = "ColecoVision";
+    information.model = Model::ColecoVision;
+  }
+  if(name.find("ColecoAdam")) {
+    information.name = "ColecoAdam";
+    information.model = Model::ColecoAdam;
+  }
+  if(name.find("NTSC")) {
+    information.region = Region::NTSC;
+    information.colorburst = Constants::Colorburst::NTSC;
+  }
+  if(name.find("PAL")) {
+    information.region = Region::PAL;
+    information.colorburst = Constants::Colorburst::PAL * 4.0 / 5.0;
+  }
 
-  node = Node::System::create(interface->name());
+  node = Node::System::create(information.name);
+  node->setGame({&System::game, this});
+  node->setRun({&System::run, this});
+  node->setPower({&System::power, this});
+  node->setSave({&System::save, this});
+  node->setUnload({&System::unload, this});
+  node->setSerialize({&System::serialize, this});
+  node->setUnserialize({&System::unserialize, this});
   root = node;
 
-  regionNode = node->append<Node::String>("Region", "NTSC → PAL");
-  regionNode->setAllowedValues({
-    "NTSC → PAL",
-    "PAL → NTSC",
-    "NTSC",
-    "PAL"
-  });
+  if(auto fp = platform->open(node, "bios.rom", File::Read, File::Required)) {
+    fp->read({bios, 0x2000});
+  }
 
   scheduler.reset();
   controls.load(node);
@@ -40,6 +77,7 @@ auto System::load(Node::Object& root) -> void {
   cartridgeSlot.load(node);
   controllerPort1.load(node);
   controllerPort2.load(node);
+  return true;
 }
 
 auto System::save() -> void {
@@ -59,37 +97,14 @@ auto System::unload() -> void {
   node = {};
 }
 
-auto System::power() -> void {
-  for(auto& setting : node->find<Node::Setting>()) setting->setLatch();
-
-  auto setRegion = [&](string region) {
-    if(region == "NTSC") {
-      information.region = Region::NTSC;
-      information.colorburst = Constants::Colorburst::NTSC;
-    }
-    if(region == "PAL") {
-      information.region = Region::PAL;
-      information.colorburst = Constants::Colorburst::PAL * 4.0 / 5.0;
-    }
-  };
-  auto regions = regionNode->latch().split("→").strip();
-  setRegion(regions.first());
-  for(auto& requested : reverse(regions)) {
-    if(requested == cartridge.region()) setRegion(requested);
-  }
-
-  if(auto fp = platform->open(node, "bios.rom", File::Read, File::Required)) {
-    fp->read(bios, 0x2000);
-  }
+auto System::power(bool reset) -> void {
+  for(auto& setting : node->find<Node::Setting::Setting>()) setting->setLatch();
 
   cartridge.power();
   cpu.power();
   vdp.power();
   psg.power();
   scheduler.power(cpu);
-
-  information.serializeSize[0] = serializeInit(0);
-  information.serializeSize[1] = serializeInit(1);
 }
 
 }

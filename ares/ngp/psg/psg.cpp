@@ -6,22 +6,23 @@ PSG psg;
 #include "serialization.cpp"
 
 auto PSG::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("PSG");
+  node = parent->append<Node::Object>("PSG");
 
-  stream = node->append<Node::Stream>("PSG");
+  stream = node->append<Node::Audio::Stream>("PSG");
   stream->setChannels(2);
   stream->setFrequency(system.frequency() / 32.0);
   stream->addHighPassFilter(20.0, 1);
 }
 
 auto PSG::unload() -> void {
-  node = {};
-  stream = {};
+  node->remove(stream);
+  stream.reset();
+  node.reset();
 }
 
 auto PSG::main() -> void {
-  double left  = 0.0;
-  double right = 0.0;
+  f64 left  = 0.0;
+  f64 right = 0.0;
 
   if(psg.enable) {
     auto channels = T6W28::clock();
@@ -40,11 +41,11 @@ auto PSG::main() -> void {
     right += dac.right / 255.0;
   }
 
-  stream->sample(left, right);
+  stream->frame(left, right);
   step(1);
 }
 
-auto PSG::step(uint clocks) -> void {
+auto PSG::step(u32 clocks) -> void {
   Thread::step(clocks);
   synchronize(cpu);
   synchronize(apu);
@@ -58,11 +59,11 @@ auto PSG::enableDAC() -> void {
   psg.enable = 0;
 }
 
-auto PSG::writeLeftDAC(uint8 data) -> void {
+auto PSG::writeLeftDAC(n8 data) -> void {
   dac.left  = data;
 }
 
-auto PSG::writeRightDAC(uint8 data) -> void {
+auto PSG::writeRightDAC(n8 data) -> void {
   dac.right = data;
 }
 
@@ -71,7 +72,7 @@ auto PSG::power() -> void {
 
   psg = {};
   dac = {};
-  for(uint level : range(15)) {
+  for(u32 level : range(15)) {
     volume[level] = pow(2, level * -2.0 / 6.0);
   }
   volume[15] = 0;

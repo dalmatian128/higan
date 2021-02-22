@@ -38,10 +38,17 @@ struct emitter {
     byte(mod << 6 | reg << 3 | rm << 0);
   }
 
+  //scale: {index*1, index*2, index*4, index*8}
+  //index: {eax, ecx, edx, ebx, invalid, ebp, esi, edi}
+  //base:  {eax, ecx, edx, ebx, esp, displacement, esi, edi}
+  auto sib(u8 scale, u8 index, u8 base) {
+    byte(scale << 6 | index << 3 | base << 0);
+  }
+
   array_span<u8> span, origin;
 } emit;
 
-auto bind(array_span<uint8_t> span) {
+auto bind(array_span<u8> span) {
   emit.span = span;
   emit.origin = span;
 }

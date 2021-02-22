@@ -8,7 +8,7 @@ Cartridge& cartridge = cartridgeSlot.cartridge;
 #include "serialization.cpp"
 
 auto Cartridge::allocate(Node::Port parent) -> Node::Peripheral {
-  return node = parent->append<Node::Peripheral>(interface->name());
+  return node = parent->append<Node::Peripheral>(system.name());
 }
 
 auto Cartridge::connect() -> void {
@@ -63,9 +63,6 @@ auto Cartridge::save() -> void {
 
 auto Cartridge::power() -> void {
   mapper = {};
-  mapper.romPage0 = 0;
-  mapper.romPage1 = 1;
-  mapper.romPage2 = 2;
 }
 
 }

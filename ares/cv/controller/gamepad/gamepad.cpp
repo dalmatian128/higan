@@ -1,27 +1,27 @@
 Gamepad::Gamepad(Node::Port parent) {
   node = parent->append<Node::Peripheral>("Gamepad");
 
-  up    = node->append<Node::Button>("Up");
-  down  = node->append<Node::Button>("Down");
-  left  = node->append<Node::Button>("Left");
-  right = node->append<Node::Button>("Right");
-  l     = node->append<Node::Button>("L");
-  r     = node->append<Node::Button>("R");
-  one   = node->append<Node::Button>("1");
-  two   = node->append<Node::Button>("2");
-  three = node->append<Node::Button>("3");
-  four  = node->append<Node::Button>("4");
-  five  = node->append<Node::Button>("5");
-  six   = node->append<Node::Button>("6");
-  seven = node->append<Node::Button>("7");
-  eight = node->append<Node::Button>("8");
-  nine  = node->append<Node::Button>("9");
-  star  = node->append<Node::Button>("*");
-  zero  = node->append<Node::Button>("0");
-  pound = node->append<Node::Button>("#");
+  up    = node->append<Node::Input::Button>("Up");
+  down  = node->append<Node::Input::Button>("Down");
+  left  = node->append<Node::Input::Button>("Left");
+  right = node->append<Node::Input::Button>("Right");
+  l     = node->append<Node::Input::Button>("L");
+  r     = node->append<Node::Input::Button>("R");
+  one   = node->append<Node::Input::Button>("1");
+  two   = node->append<Node::Input::Button>("2");
+  three = node->append<Node::Input::Button>("3");
+  four  = node->append<Node::Input::Button>("4");
+  five  = node->append<Node::Input::Button>("5");
+  six   = node->append<Node::Input::Button>("6");
+  seven = node->append<Node::Input::Button>("7");
+  eight = node->append<Node::Input::Button>("8");
+  nine  = node->append<Node::Input::Button>("9");
+  star  = node->append<Node::Input::Button>("*");
+  zero  = node->append<Node::Input::Button>("0");
+  pound = node->append<Node::Input::Button>("#");
 }
 
-auto Gamepad::read() -> uint8 {
+auto Gamepad::read() -> n8 {
   platform->input(up);
   platform->input(down);
   platform->input(left);
@@ -53,7 +53,7 @@ auto Gamepad::read() -> uint8 {
     xHold = 1, swap(leftLatch, rightLatch);
   }
 
-  uint8 data = 0xff;
+  n8 data = 0xff;
   if(select == 0) {
          if(one->value  ()) data.bit(0,3) = 0b1101;
     else if(two->value  ()) data.bit(0,3) = 0b0111;
@@ -78,6 +78,6 @@ auto Gamepad::read() -> uint8 {
   return data;
 }
 
-auto Gamepad::write(uint8 data) -> void {
+auto Gamepad::write(n8 data) -> void {
   select = data.bit(0);
 }

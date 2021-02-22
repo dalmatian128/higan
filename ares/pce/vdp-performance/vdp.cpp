@@ -15,9 +15,10 @@ VDP vdp;
 #include "serialization.cpp"
 
 auto VDP::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("VDP");
+  node = parent->append<Node::Object>("VDP");
 
-  screen = node->append<Node::Screen>("Screen");
+  screen = node->append<Node::Video::Screen>("Screen", 1365, 263);
+  screen->setRefresh({&VDP::refresh, this});
   screen->colors(1 << 10, {&VDP::color, this});
   screen->setSize(1088, 239);
   screen->setScale(0.25, 1.0);
@@ -29,11 +30,13 @@ auto VDP::load(Node::Object parent) -> void {
 }
 
 auto VDP::unload() -> void {
-  node = {};
-  screen = {};
   vce.debugger = {};
   vdc0.debugger = {}; if(Model::SuperGrafx())
   vdc1.debugger = {};
+  screen->quit();
+  node->remove(screen);
+  screen.reset();
+  node.reset();
 }
 
 auto VDP::main() -> void {
@@ -58,18 +61,18 @@ auto VDP::main() -> void {
     case 512: widths[io.vcounter] = 512; width512 = 1; break;
     }
 
-    auto output = buffer + 1365 * io.vcounter;
+    auto line = screen->pixels().data() + 1365 * io.vcounter;
 
     if(Model::SuperGrafx() == 0) {
-      for(uint x : range(vce.width())) {
-        output[x] = vce.io.grayscale << 9 | vce.cram.read(vdc0.output[x]);
+      for(u32 x : range(vce.width())) {
+        line[x] = vce.io.grayscale << 9 | vce.cram.read(vdc0.output[x]);
       }
     }
 
     if(Model::SuperGrafx() == 1) {
       vpc.render();
-      for(uint x : range(vce.width())) {
-        output[x] = vce.io.grayscale << 9 | vce.cram.read(vpc.output[x]);
+      for(u32 x : range(vce.width())) {
+        line[x] = vce.io.grayscale << 9 | vce.cram.read(vpc.output[x]);
       }
     }
   }
@@ -82,11 +85,12 @@ auto VDP::main() -> void {
   io.hcounter = 0;
   if(++io.vcounter >= 262 + vce.io.extraLine) {
     io.vcounter = 0;
+    screen->frame();
     scheduler.exit(Event::Frame);
   }
 }
 
-auto VDP::step(uint clocks) -> void {
+auto VDP::step(u32 clocks) -> void {
   io.hcounter += clocks;
   vdc0.dma.step(clocks); if(Model::SuperGrafx())
   vdc1.dma.step(clocks);
@@ -97,26 +101,26 @@ auto VDP::step(uint clocks) -> void {
 
 auto VDP::refresh() -> void {
   if(width256 == 1 && width344 == 0 && width512 == 0) {
-    return screen->refresh(buffer + 1365 * 21, 1365 * sizeof(uint32), 256, 239);
+    return screen->setViewport(0, 21, 256, 239);
   }
 
   if(width256 == 0 && width344 == 1 && width512 == 0) {
-    return screen->refresh(buffer + 1365 * 21, 1365 * sizeof(uint32), 344, 239);
+    return screen->setViewport(0, 21, 344, 239);
   }
 
   if(width256 == 0 && width344 == 0 && width512 == 1) {
-    return screen->refresh(buffer + 1365 * 21, 1365 * sizeof(uint32), 512, 239);
+    return screen->setViewport(0, 23, 512, 239);
   }
 
   //this frame contains mixed resolutions: normalize every scanline to 1024-width
-  for(uint y = 21; y < 239 + 21; y++) {
-    auto output = buffer + 1365 * y;
+  for(u32 y = 21; y < 239 + 21; y++) {
+    auto output = screen->pixels(1).data() + 1365 * y;
     switch(widths[y]) {
 
     case 256: {
       auto source = &output[256];
       auto target = &output[256 * 4];
-      for(uint x : range(256)) {
+      for(u32 x : range(256)) {
         auto color = *--source;
         *--target = color;
         *--target = color;
@@ -128,7 +132,7 @@ auto VDP::refresh() -> void {
     case 344: {
       auto source = &output[344];
       auto target = &output[344 * 3];
-      for(uint x : range(344)) {
+      for(u32 x : range(344)) {
         auto color = *--source;
         *--target = color;
         *--target = color;
@@ -139,7 +143,7 @@ auto VDP::refresh() -> void {
     case 512: {
       auto source = &output[512];
       auto target = &output[512 * 2];
-      for(uint x : range(512)) {
+      for(u32 x : range(512)) {
         auto color = *--source;
         *--target = color;
         *--target = color;
@@ -148,11 +152,12 @@ auto VDP::refresh() -> void {
 
     }
   }
-  return screen->refresh(buffer + 1365 * 21, 1365 * sizeof(uint32), 1024, 239);
+  return screen->setViewport(0, 21, 1024, 239);
 }
 
 auto VDP::power() -> void {
   Thread::create(system.colorburst() * 6.0, {&VDP::main, this});
+  screen->power();
 
   vce.power();
   vdc0.power(); if(Model::SuperGrafx())

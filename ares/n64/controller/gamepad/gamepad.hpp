@@ -1,21 +1,32 @@
 struct Gamepad : Controller {
-  Node::Axis x;
-  Node::Axis y;
-  Node::Button up;
-  Node::Button down;
-  Node::Button left;
-  Node::Button right;
-  Node::Button b;
-  Node::Button a;
-  Node::Button cameraUp;
-  Node::Button cameraDown;
-  Node::Button cameraLeft;
-  Node::Button cameraRight;
-  Node::Button l;
-  Node::Button r;
-  Node::Button z;
-  Node::Button start;
+  Node::Port port;
+  Node::Peripheral pak;
+  Memory::Writable ram;  //Toshiba TC55257DFL-85V
+  Node::Input::Rumble motor;
+
+  Node::Input::Axis x;
+  Node::Input::Axis y;
+  Node::Input::Button up;
+  Node::Input::Button down;
+  Node::Input::Button left;
+  Node::Input::Button right;
+  Node::Input::Button b;
+  Node::Input::Button a;
+  Node::Input::Button cameraUp;
+  Node::Input::Button cameraDown;
+  Node::Input::Button cameraLeft;
+  Node::Input::Button cameraRight;
+  Node::Input::Button l;
+  Node::Input::Button r;
+  Node::Input::Button z;
+  Node::Input::Button start;
 
   Gamepad(Node::Port);
-  auto read() -> uint32 override;
+  ~Gamepad();
+  auto allocate(string name) -> Node::Peripheral;
+  auto connect() -> void;
+  auto disconnect() -> void;
+  auto rumble(bool enable) -> void;
+  auto read() -> n32 override;
+  auto serialize(serializer&) -> void override;
 };

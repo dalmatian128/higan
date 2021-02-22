@@ -2,32 +2,75 @@
 
 namespace ares::MSX {
 
+auto enumerate() -> vector<string> {
+  return {
+    "[Microsoft] MSX (NTSC)",
+    "[Microsoft] MSX (PAL)",
+    "[Microsoft] MSX2 (NTSC)",
+    "[Microsoft] MSX2 (PAL)",
+  };
+}
+
+auto load(Node::System& node, string name) -> bool {
+  if(!enumerate().find(name)) return false;
+  return system.load(node, name);
+}
+
 Scheduler scheduler;
 ROM rom;
 System system;
 #include "serialization.cpp"
 
-auto System::run() -> void {
-  if(scheduler.enter() == Event::Frame) vdp.refresh();
+auto System::game() -> string {
+  if(cartridge.node && expansion.node) {
+    return {cartridge.name(), " + ", expansion.name()};
+  }
+
+  if(cartridge.node) {
+    return cartridge.name();
+  }
+
+  if(expansion.node) {
+    return expansion.name();
+  }
+
+  return "(no cartridge connected)";
 }
 
-auto System::load(Node::Object& root) -> void {
+auto System::run() -> void {
+  scheduler.enter();
+}
+
+auto System::load(Node::System& root, string name) -> bool {
   if(node) unload();
 
   information = {};
-  if(interface->name() == "MSX" ) information.model = Model::MSX;
-  if(interface->name() == "MSX2") information.model = Model::MSX2;
+  if(name.find("MSX")) {
+    information.name = "MSX";
+    information.model = Model::MSX;
+  }
+  if(name.find("MSX2")) {
+    information.name = "MSX2";
+    information.model = Model::MSX2;
+  }
+  if(name.find("NTSC")) {
+    information.region = Region::NTSC;
+    information.colorburst = Constants::Colorburst::NTSC;
+  }
+  if(name.find("PAL")) {
+    information.region = Region::PAL;
+    information.colorburst = Constants::Colorburst::PAL;
+  }
 
-  node = Node::System::create(interface->name());
+  node = Node::System::create(information.name);
+  node->setGame({&System::game, this});
+  node->setRun({&System::run, this});
+  node->setPower({&System::power, this});
+  node->setSave({&System::save, this});
+  node->setUnload({&System::unload, this});
+  node->setSerialize({&System::serialize, this});
+  node->setUnserialize({&System::unserialize, this});
   root = node;
-
-  regionNode = node->append<Node::String>("Region", "NTSC → PAL");
-  regionNode->setAllowedValues({
-    "NTSC → PAL",
-    "PAL → NTSC",
-    "NTSC",
-    "PAL"
-  });
 
   scheduler.reset();
   keyboard.load(node);
@@ -38,6 +81,7 @@ auto System::load(Node::Object& root) -> void {
   expansionSlot.load(node);
   controllerPort1.load(node);
   controllerPort2.load(node);
+  return true;
 }
 
 auto System::save() -> void {
@@ -61,24 +105,8 @@ auto System::unload() -> void {
   rom.sub.reset();
 }
 
-auto System::power() -> void {
-  for(auto& setting : node->find<Node::Setting>()) setting->setLatch();
-
-  auto setRegion = [&](string region) {
-    if(region == "NTSC") {
-      information.region = Region::NTSC;
-      information.colorburst = Constants::Colorburst::NTSC;
-    }
-    if(region == "PAL") {
-      information.region = Region::PAL;
-      information.colorburst = Constants::Colorburst::PAL;
-    }
-  };
-  auto regions = regionNode->latch().split("→").strip();
-  setRegion(regions.first());
-  for(auto& requested : reverse(regions)) {
-    if(requested == cartridge.region()) setRegion(requested);
-  }
+auto System::power(bool reset) -> void {
+  for(auto& setting : node->find<Node::Setting::Setting>()) setting->setLatch();
 
   rom.bios.allocate(32_KiB);
   if(auto fp = platform->open(node, "bios.rom", File::Read, File::Required)) {
@@ -99,9 +127,6 @@ auto System::power() -> void {
   vdp.power();
   psg.power();
   scheduler.power(cpu);
-
-  information.serializeSize[0] = serializeInit(0);
-  information.serializeSize[1] = serializeInit(1);
 }
 
 }

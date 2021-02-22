@@ -8,7 +8,7 @@ RDRAM rdram;
 #include "serialization.cpp"
 
 auto RDRAM::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("RDRAM");
+  node = parent->append<Node::Object>("RDRAM");
 
   //4_MiB internal
   //4_MiB expansion pak
@@ -23,8 +23,12 @@ auto RDRAM::unload() -> void {
   node.reset();
 }
 
-auto RDRAM::power() -> void {
+auto RDRAM::power(bool reset) -> void {
   ram.fill();
+  //hacks needed for expansion pak detection:
+  ram.writeWord(0x318, ram.size);  //CIC-NUS-6102
+  ram.writeWord(0x3f0, ram.size);  //CIC-NUS-6105
+  io = {};
 }
 
 }

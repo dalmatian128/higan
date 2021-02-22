@@ -1,21 +1,21 @@
 #include "bios.hpp"
 
 struct System {
-  Node::Object node;
+  Node::System node;
 
   struct Controls {
     Node::Object node;
-    Node::Button up;
-    Node::Button down;
-    Node::Button left;
-    Node::Button right;
-    Node::Button b;
-    Node::Button a;
-    Node::Button l;
-    Node::Button r;
-    Node::Button select;
-    Node::Button start;
-    Node::Rumble rumbler;  //Game Boy Player
+    Node::Input::Button up;
+    Node::Input::Button down;
+    Node::Input::Button left;
+    Node::Input::Button right;
+    Node::Input::Button b;
+    Node::Input::Button a;
+    Node::Input::Button l;
+    Node::Input::Button r;
+    Node::Input::Button select;
+    Node::Input::Button start;
+    Node::Input::Rumble rumbler;  //Game Boy Player
 
     auto load(Node::Object) -> void;
     auto poll() -> void;
@@ -29,18 +29,20 @@ struct System {
     bool rightLatch = 0;
   } controls;
 
-  enum class Model : uint { GameBoyAdvance, GameBoyPlayer };
+  enum class Model : u32 { GameBoyAdvance, GameBoyPlayer };
 
+  auto name() const -> string { return information.name; }
   auto model() const -> Model { return information.model; }
-  auto frequency() const -> double { return 16 * 1024 * 1024; }
+  auto frequency() const -> f64 { return 16 * 1024 * 1024; }
 
   //system.cpp
+  auto game() -> string;
   auto run() -> void;
 
-  auto load(Node::Object&) -> void;
+  auto load(Node::System& node, string name) -> bool;
   auto save() -> void;
   auto unload() -> void;
-  auto power() -> void;
+  auto power(bool reset = false) -> void;
 
   //serialization.cpp
   auto serialize(bool synchronize) -> serializer;
@@ -48,14 +50,12 @@ struct System {
 
 private:
   struct Information {
+    string name = "Game Boy Advance";
     Model model = Model::GameBoyAdvance;
-    uint32 serializeSize[2];
   } information;
 
   //serialization.cpp
-  auto serialize(serializer&) -> void;
-  auto serializeAll(serializer&, bool synchronize) -> void;
-  auto serializeInit(bool synchronize) -> uint;
+  auto serialize(serializer&, bool synchronize) -> void;
 };
 
 extern System system;

@@ -40,7 +40,9 @@ struct VideoWGL : VideoDriver, OpenGL {
   }
 
   auto setBlocking(bool blocking) -> bool override {
+    acquireContext();
     if(wglSwapInterval) wglSwapInterval(blocking);
+    releaseContext();
     return true;
   }
 
@@ -49,7 +51,9 @@ struct VideoWGL : VideoDriver, OpenGL {
   }
 
   auto setShader(string shader) -> bool override {
+    acquireContext();
     OpenGL::setShader(self.shader);
+    releaseContext();
     return true;
   }
 
@@ -60,11 +64,13 @@ struct VideoWGL : VideoDriver, OpenGL {
   }
 
   auto clear() -> void override {
+    acquireContext();
     OpenGL::clear();
     SwapBuffers(_display);
+    releaseContext();
   }
 
-  auto size(uint& width, uint& height) -> void override {
+  auto size(u32& width, u32& height) -> void override {
     if(self.fullScreen) {
       width = _monitorWidth;
       height = _monitorHeight;
@@ -76,16 +82,20 @@ struct VideoWGL : VideoDriver, OpenGL {
     }
   }
 
-  auto acquire(uint32_t*& data, uint& pitch, uint width, uint height) -> bool override {
+  auto acquire(u32*& data, u32& pitch, u32 width, u32 height) -> bool override {
+    acquireContext();
     OpenGL::size(width, height);
-    return OpenGL::lock(data, pitch);
+    bool result = OpenGL::lock(data, pitch);
+    releaseContext();
+    return result;
   }
 
   auto release() -> void override {
   }
 
-  auto output(uint width, uint height) -> void override {
-    uint windowWidth, windowHeight;
+  auto output(u32 width, u32 height) -> void override {
+    acquireContext();
+    u32 windowWidth, windowHeight;
     size(windowWidth, windowHeight);
 
     OpenGL::absoluteWidth = width;
@@ -98,6 +108,7 @@ struct VideoWGL : VideoDriver, OpenGL {
 
     SwapBuffers(_display);
     if(self.flush) glFinish();
+    releaseContext();
   }
 
 private:
@@ -118,6 +129,16 @@ private:
 
   auto destruct() -> void {
     terminate();
+  }
+
+  auto acquireContext() -> void {
+    if(!_wglContext) return;
+    while(!wglMakeCurrent(_display, _wglContext)) spinloop();
+  }
+
+  auto releaseContext() -> void {
+    if(!_wglContext) return;
+    while(!wglMakeCurrent(_display, nullptr)) spinloop();
   }
 
   auto initialize() -> bool {
@@ -155,7 +176,7 @@ private:
     wglSwapInterval = (BOOL (APIENTRY*)(int))glGetProcAddress("wglSwapIntervalEXT");
 
     if(wglCreateContextAttribs) {
-      int attributeList[] = {
+      s32 attributeList[] = {
         WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
         WGL_CONTEXT_MINOR_VERSION_ARB, 2,
         0
@@ -169,10 +190,13 @@ private:
     }
 
     if(wglSwapInterval) wglSwapInterval(self.blocking);
-    return _ready = OpenGL::initialize(self.shader);
+    _ready = OpenGL::initialize(self.shader);
+    releaseContext();
+    return _ready;
   }
 
   auto terminate() -> void {
+    acquireContext();
     _ready = false;
     OpenGL::terminate();
 
@@ -194,10 +218,10 @@ private:
 
   bool _ready = false;
 
-  int _monitorX = 0;
-  int _monitorY = 0;
-  int _monitorWidth = 0;
-  int _monitorHeight = 0;
+  s32 _monitorX = 0;
+  s32 _monitorY = 0;
+  s32 _monitorWidth = 0;
+  s32 _monitorHeight = 0;
 
   HWND _window = nullptr;
   HWND _context = nullptr;

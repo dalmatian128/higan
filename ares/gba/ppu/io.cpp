@@ -1,4 +1,4 @@
-auto PPU::readIO(uint32 addr) -> uint8 {
+auto PPU::readIO(n32 addr) -> n8 {
   switch(addr) {
 
   //DISPCNT
@@ -99,10 +99,11 @@ auto PPU::readIO(uint32 addr) -> uint8 {
 
   }
 
+  if(cpu.context.dmaActive) return cpu.dmabus.data.byte(addr & 3);
   return cpu.pipeline.fetch.instruction.byte(addr & 1);
 }
 
-auto PPU::writeIO(uint32 addr, uint8 data) -> void {
+auto PPU::writeIO(n32 addr, n8 data) -> void {
   switch(addr) {
 
   //DISPCNT

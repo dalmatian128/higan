@@ -10,6 +10,13 @@
 #include <nall/function.hpp>
 #include <nall/intrinsics.hpp>
 
+namespace nall {
+  using mutex = std::mutex;
+  using recursive_mutex = std::recursive_mutex;
+  template<typename T> using lock_guard = std::lock_guard<T>;
+  template<typename T> using atomic = std::atomic<T>;
+}
+
 #if defined(API_POSIX)
 
 #include <pthread.h>
@@ -19,7 +26,7 @@ namespace nall {
 struct thread {
   auto join() -> void;
 
-  static auto create(const function<void (uintptr)>& callback, uintptr parameter = 0, uint stacksize = 0) -> thread;
+  static auto create(const function<void (uintptr)>& callback, uintptr parameter = 0, u32 stacksize = 0) -> thread;
   static auto detach() -> void;
   static auto exit() -> void;
 
@@ -29,7 +36,7 @@ struct thread {
   };
 
 private:
-  pthread_t handle;
+  pthread_t handle = (pthread_t)nullptr;
 };
 
 inline auto _threadCallback(void* parameter) -> void* {
@@ -43,7 +50,7 @@ inline auto thread::join() -> void {
   pthread_join(handle, nullptr);
 }
 
-inline auto thread::create(const function<void (uintptr)>& callback, uintptr parameter, uint stacksize) -> thread {
+inline auto thread::create(const function<void (uintptr)>& callback, uintptr parameter, u32 stacksize) -> thread {
   thread instance;
 
   auto context = new thread::context;
@@ -76,7 +83,7 @@ struct thread {
   ~thread();
   auto join() -> void;
 
-  static auto create(const function<void (uintptr)>& callback, uintptr parameter = 0, uint stacksize = 0) -> thread;
+  static auto create(const function<void (uintptr)>& callback, uintptr parameter = 0, u32 stacksize = 0) -> thread;
   static auto detach() -> void;
   static auto exit() -> void;
 
@@ -105,13 +112,20 @@ inline thread::~thread() {
 
 inline auto thread::join() -> void {
   if(handle) {
-    WaitForSingleObject(handle, INFINITE);
+  //wait until the thread has finished executing ...
+  //WaitForSingleObject(handle, INFINITE);  //this hangs sometimes even after _threadCallback returns
+    while(true) {
+      DWORD exitCode;
+      GetExitCodeThread(handle, &exitCode);
+      if(exitCode != STILL_ACTIVE) break;
+      usleep(1);
+    }
     CloseHandle(handle);
     handle = 0;
   }
 }
 
-inline auto thread::create(const function<void (uintptr)>& callback, uintptr parameter, uint stacksize) -> thread {
+inline auto thread::create(const function<void (uintptr)>& callback, uintptr parameter, u32 stacksize) -> thread {
   thread instance;
 
   auto context = new thread::context;

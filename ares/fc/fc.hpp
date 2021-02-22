@@ -10,6 +10,8 @@
 
 namespace ares::Famicom {
   #include <ares/inline.hpp>
+  auto enumerate() -> vector<string>;
+  auto load(Node::System& node, string name) -> bool;
 
   struct Region {
     static inline auto NTSCJ() -> bool;
@@ -18,6 +20,7 @@ namespace ares::Famicom {
   };
 
   #include <fc/controller/controller.hpp>
+  #include <fc/expansion/expansion.hpp>
   #include <fc/system/system.hpp>
   #include <fc/cartridge/cartridge.hpp>
   #include <fc/cpu/cpu.hpp>
@@ -25,5 +28,3 @@ namespace ares::Famicom {
   #include <fc/ppu/ppu.hpp>
   #include <fc/fds/fds.hpp>
 }
-
-#include <fc/interface/interface.hpp>

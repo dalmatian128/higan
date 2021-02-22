@@ -1,18 +1,18 @@
 FightingPad::FightingPad(Node::Port parent) {
   node = parent->append<Node::Peripheral>("Fighting Pad");
 
-  up    = node->append<Node::Button>("Up");
-  down  = node->append<Node::Button>("Down");
-  left  = node->append<Node::Button>("Left");
-  right = node->append<Node::Button>("Right");
-  a     = node->append<Node::Button>("A");
-  b     = node->append<Node::Button>("B");
-  c     = node->append<Node::Button>("C");
-  x     = node->append<Node::Button>("X");
-  y     = node->append<Node::Button>("Y");
-  z     = node->append<Node::Button>("Z");
-  mode  = node->append<Node::Button>("Mode");
-  start = node->append<Node::Button>("Start");
+  up    = node->append<Node::Input::Button>("Up");
+  down  = node->append<Node::Input::Button>("Down");
+  left  = node->append<Node::Input::Button>("Left");
+  right = node->append<Node::Input::Button>("Right");
+  a     = node->append<Node::Input::Button>("A");
+  b     = node->append<Node::Input::Button>("B");
+  c     = node->append<Node::Input::Button>("C");
+  x     = node->append<Node::Input::Button>("X");
+  y     = node->append<Node::Input::Button>("Y");
+  z     = node->append<Node::Input::Button>("Z");
+  mode  = node->append<Node::Input::Button>("Mode");
+  start = node->append<Node::Input::Button>("Start");
 
   Thread::create(1'000'000, {&FightingPad::main, this});
 }
@@ -27,7 +27,7 @@ auto FightingPad::main() -> void {
   Thread::synchronize(cpu);
 }
 
-auto FightingPad::readData() -> uint8 {
+auto FightingPad::readData() -> n8 {
   platform->input(up);
   platform->input(down);
   platform->input(left);
@@ -53,7 +53,7 @@ auto FightingPad::readData() -> uint8 {
     xHold = 1, swap(leftLatch, rightLatch);
   }
 
-  uint6 data;
+  n6 data;
 
   if(select == 0) {
     if(counter == 0 || counter == 1 || counter == 4) {
@@ -95,7 +95,7 @@ auto FightingPad::readData() -> uint8 {
   return latch << 7 | select << 6 | data;
 }
 
-auto FightingPad::writeData(uint8 data) -> void {
+auto FightingPad::writeData(n8 data) -> void {
   if(!select && data.bit(6)) {  //0->1 transition
     if(++counter == 5) counter = 0;
   }

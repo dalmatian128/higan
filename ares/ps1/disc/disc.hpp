@@ -1,15 +1,32 @@
-struct Disc : Thread {
-  Node::Component node;
+struct Disc : Thread, Memory::Interface {
+  Node::Object node;
   Node::Port tray;
   Node::Peripheral cd;
   Shared::File fd;
   CD::Session session;
 
+  struct Debugger {
+    //debugger.cpp
+    auto load(Node::Object) -> void;
+    auto commandPrologue(u8 operation, maybe<u8> suboperation = nothing) -> void;
+    auto commandEpilogue(u8 operation, maybe<u8> suboperation = nothing) -> void;
+    auto read(s32 lba) -> void;
+
+    struct Tracer {
+      Node::Debugger::Tracer::Notification command;
+      Node::Debugger::Tracer::Notification read;
+    } tracer;
+
+  private:
+    string _command;
+  } debugger;
+
   auto manifest() const -> string { return information.manifest; }
   auto name() const -> string { return information.name; }
   auto region() const -> string { return information.region; }
-  auto audio() const -> bool { return information.region == ""; }
+  auto audioCD() const -> bool { return information.audio; }
   auto executable() const -> bool { return information.executable; }
+  auto noDisc() const -> bool { return !name(); }
 
   //disc.cpp
   auto load(Node::Object) -> void;
@@ -20,7 +37,7 @@ struct Disc : Thread {
   auto disconnect() -> void;
 
   auto main() -> void;
-  auto step(uint clocks) -> void;
+  auto step(u32 clocks) -> void;
   auto power(bool reset) -> void;
 
   //io.cpp
@@ -36,31 +53,37 @@ struct Disc : Thread {
   auto status() -> u8;
   auto command(u8 operation) -> void;
   auto commandTest() -> void;
+  auto commandInvalid() -> void;
   auto commandGetStatus() -> void;
   auto commandSetLocation() -> void;
   auto commandPlay() -> void;
   auto commandFastForward() -> void;
   auto commandRewind() -> void;
   auto commandReadWithRetry() -> void;
-  auto commandReadWithoutRetry() -> void;
   auto commandStop() -> void;
   auto commandPause() -> void;
   auto commandInitialize() -> void;
   auto commandMute() -> void;
   auto commandUnmute() -> void;
+  auto commandSetFilter() -> void;
   auto commandSetMode() -> void;
+  auto commandGetLocationPlaying() -> void;
+  auto commandSetSession() -> void;
   auto commandGetFirstAndLastTrackNumbers() -> void;
   auto commandGetTrackStart() -> void;
   auto commandSeekData() -> void;
   auto commandSeekCDDA() -> void;
   auto commandTestControllerDate() -> void;
   auto commandGetID() -> void;
+  auto commandReadWithoutRetry() -> void;
+  auto commandUnimplemented(u8, maybe<u8> = nothing) -> void;
 
   //serialization.cpp
   auto serialize(serializer&) -> void;
 
   struct Drive;
   struct CDDA;
+  struct CDXA;
 
   struct Drive {
     Disc& self;
@@ -68,67 +91,106 @@ struct Disc : Thread {
 
     maybe<CD::Session&> session;
     maybe<CDDA&> cdda;
+    maybe<CDXA&> cdxa;
 
     //drive.cpp
-    auto distance() const -> uint;
+    auto distance() const -> u32;
     auto clockSector() -> void;
 
     struct LBA {
-      int current = 0;
-      int request = 0;
-      int seeking = 0;
+      s32 current;
+      s32 request;
+      s32 seeking;
     } lba;
 
     struct Sector {
-       u8 data[2448];
+      u8  data[2448];
       u16 offset;
     } sector;
 
     struct Mode {
-      uint1 cdda;
-      uint1 autoPause;
-      uint1 report;
-      uint1 xaFilter;
-      uint1 ignore;
-      uint1 sectorSize;
-      uint1 xaADPCM;
-      uint1 speed;
+      n1 cdda;
+      n1 autoPause;
+      n1 report;
+      n1 xaFilter;
+      n1 ignore;
+      n1 sectorSize;
+      n1 xaADPCM;
+      n1 speed;
     } mode;
+
+    n32 seeking;
   } drive{*this};
+
+  struct Audio {
+    n1 mute;
+    n1 muteADPCM;
+    n8 volume[4];
+    n8 volumeLatch[4];
+  } audio;
 
   struct CDDA {
     Disc& self;
     CDDA(Disc& self) : self(self) {}
 
     maybe<Drive&> drive;
-    Node::Stream stream;
+    Node::Audio::Stream stream;
 
     //cdda.cpp
     auto load(Node::Object) -> void;
-    auto unload() -> void;
+    auto unload(Node::Object) -> void;
 
     auto clockSector() -> void;
     auto clockSample() -> void;
 
-    enum class PlayMode : uint {
+    enum class PlayMode : u32 {
       Normal,
       FastForward,
       Rewind,
-    } playMode = PlayMode::Normal;
-
-    uint8 volume[4];
-    uint8 volumeLatch[4];
+    } playMode;
 
     struct Sample {
-      i16 left;
-      i16 right;
+      s16 left;
+      s16 right;
     } sample;
   } cdda{*this};
 
+  struct CDXA {
+    Disc& self;
+    CDXA(Disc& self) : self(self) {}
+
+    maybe<Drive&> drive;
+    Node::Audio::Stream stream;
+
+    //cdxa.cpp
+    auto load(Node::Object) -> void;
+    auto unload(Node::Object) -> void;
+
+    auto clockSector() -> void;
+    auto clockSample() -> void;
+    template<bool isStereo, bool is8bit> auto decodeADPCM() -> void;
+    template<bool isStereo, bool is8bit> auto decodeBlock(s16* output, u16 address) -> void;
+
+    struct Filter {
+      n8 file;
+      n8 channel;
+    } filter;
+
+    struct Sample {
+      s16 left;
+      s16 right;
+    } sample;
+
+    bool monaural;
+    queue<s16[4032 * 8]> samples;
+    s32 previousSamples[4];
+  } cdxa{*this};
+
   struct Event {
-     u8 command = 0;
-    i32 counter = 0;
-     u8 invocation = 0;
+     u8 command;
+    s32 counter;
+     u8 invocation;
+     u8 queued;
   } event;
 
   struct IRQ {
@@ -136,13 +198,12 @@ struct Disc : Thread {
     auto poll() -> void;
 
     struct Source {
-       uint1 enable;
-       uint1 flag;
-      uint32 delay;
+      n1 enable;
+      n1 flag;
     };
 
-    uint5 flag;
-    uint5 mask;
+    n5 flag;
+    n5 mask;
 
     Source ready;        //INT1
     Source complete;     //INT2
@@ -154,37 +215,34 @@ struct Disc : Thread {
   } irq;
 
   struct FIFO {
-    queue<u8> parameter;
-    queue<u8> response;
-    queue<u8> data;
+    queue<u8[16]> parameter;
+    queue<u8[16]> response;
+    queue<u8[2340]> data;
   } fifo;
-
-  struct ADPCM {
-    uint1 mute;
-  } adpcm;
 
   struct PrimaryStatusRegister {
   } psr;
 
   struct SecondaryStatusRegister {
-    uint1 error;
-    uint1 motorOn = 1;
-    uint1 seekError;
-    uint1 idError;
-    uint1 shellOpen;
-    uint1 reading;
-    uint1 seeking;
-    uint1 playingCDDA;
+    n1 error;
+    n1 motorOn = 1;
+    n1 seekError;
+    n1 idError;
+    n1 shellOpen;
+    n1 reading;
+    n1 seeking;
+    n1 playingCDDA;
   } ssr;
 
   struct IO {
-    uint2 index;
+    n2 index;
   } io;
 
   struct Counter {
-    i32 sector = 0;
-    i32 cdda = 0;
-    i32 report = 0;
+    s32 sector;
+    s32 cdda;
+    s32 cdxa;
+    s32 report;
   } counter;
 
 //unserialized:
@@ -192,6 +250,7 @@ struct Disc : Thread {
     string manifest;
     string name;
     string region;
+    boolean audio;
     boolean executable;
   } information;
 };

@@ -1,27 +1,28 @@
 extern Random random;
 
 struct System {
-  Node::Object node;
-  Node::String regionNode;
+  Node::System node;
 
   struct Controls {
     Node::Object node;
-    Node::Button reset;
+    Node::Input::Button reset;
 
     //controls.cpp
     auto load(Node::Object) -> void;
     auto poll() -> void;
   } controls;
 
-  enum class Region : uint { NTSC, PAL };
+  enum class Region : u32 { NTSC, PAL };
 
+  auto name() const -> string { return information.name; }
   auto region() const -> Region { return information.region; }
   auto cpuFrequency() const -> double { return information.cpuFrequency; }
   auto apuFrequency() const -> double { return information.apuFrequency; }
 
+  auto game() -> string;
   auto run() -> void;
 
-  auto load(Node::Object&) -> void;
+  auto load(Node::System& node, string name) -> bool;
   auto unload() -> void;
   auto save() -> void;
   auto power(bool reset) -> void;
@@ -32,16 +33,14 @@ struct System {
 
 private:
   struct Information {
+    string name = "Super Famicom";
     Region region = Region::NTSC;
-    double cpuFrequency = Constants::Colorburst::NTSC * 6.0;
-    double apuFrequency = 32040.0 * 768.0;
-    uint32 serializeSize[2];
+    f64 cpuFrequency = Constants::Colorburst::NTSC * 6.0;
+    f64 apuFrequency = 32040.0 * 768.0;
   } information;
 
   //serialization.cpp
-  auto serialize(serializer&) -> void;
-  auto serializeAll(serializer&, bool synchronize) -> void;
-  auto serializeInit(bool synchronize) -> uint;
+  auto serialize(serializer&, bool synchronize) -> void;
 
   friend class Cartridge;
 };

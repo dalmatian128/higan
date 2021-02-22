@@ -1,27 +1,31 @@
-#include <ms/interface/interface.hpp>
+namespace ares::MasterSystem {
+  auto load(Node::System& node, string name) -> bool;
+}
 
 struct MasterSystem : Emulator {
   MasterSystem();
   auto load() -> bool override;
   auto open(ares::Node::Object, string name, vfs::file::mode mode, bool required) -> shared_pointer<vfs::file> override;
-  auto input(ares::Node::Input) -> void override;
+  auto input(ares::Node::Input::Input) -> void override;
 };
 
 struct GameGear : Emulator {
   GameGear();
   auto load() -> bool override;
   auto open(ares::Node::Object, string name, vfs::file::mode mode, bool required) -> shared_pointer<vfs::file> override;
-  auto input(ares::Node::Input) -> void override;
+  auto input(ares::Node::Input::Input) -> void override;
 };
 
 MasterSystem::MasterSystem() {
-  interface = new ares::MasterSystem::MasterSystemInterface;
   medium = mia::medium("Master System");
   manufacturer = "Sega";
   name = "Master System";
 }
 
 auto MasterSystem::load() -> bool {
+  auto region = Emulator::region();
+  if(!ares::MasterSystem::load(root, {"[Sega] Master System (", region, ")"})) return false;
+
   if(auto port = root->find<ares::Node::Port>("Cartridge Slot")) {
     port->allocate();
     port->connect();
@@ -29,6 +33,16 @@ auto MasterSystem::load() -> bool {
 
   if(auto port = root->find<ares::Node::Port>("Controller Port 1")) {
     port->allocate("Gamepad");
+    port->connect();
+  }
+
+  if(auto port = root->find<ares::Node::Port>("Controller Port 2")) {
+    port->allocate("Gamepad");
+    port->connect();
+  }
+
+  if(auto port = root->find<ares::Node::Port>("Expansion Port")) {
+    port->allocate("FM Sound Unit");
     port->connect();
   }
 
@@ -54,34 +68,48 @@ auto MasterSystem::open(ares::Node::Object node, string name, vfs::file::mode mo
   return {};
 }
 
-auto MasterSystem::input(ares::Node::Input node) -> void {
-  auto name = node->name();
-  maybe<InputMapping&> mapping;
-  if(name == "Pause") mapping = virtualPad.start;
-  if(name == "Reset") mapping = nothing;
-  if(name == "Up"   ) mapping = virtualPad.up;
-  if(name == "Down" ) mapping = virtualPad.down;
-  if(name == "Left" ) mapping = virtualPad.left;
-  if(name == "Right") mapping = virtualPad.right;
-  if(name == "1"    ) mapping = virtualPad.a;
-  if(name == "2"    ) mapping = virtualPad.b;
+auto MasterSystem::input(ares::Node::Input::Input node) -> void {
+  auto parent = ares::Node::parent(node);
+  if(!parent) return;
 
-  if(mapping) {
-    auto value = mapping->value();
-    if(auto button = node->cast<ares::Node::Button>()) {
-      button->setValue(value);
+  auto port = ares::Node::parent(parent);
+  if(!port) return;
+
+  maybe<u32> index;
+  if(port->name() == "Controller Port 1") index = 0;
+  if(port->name() == "Controller Port 2") index = 1;
+  if(!index) return;
+
+  if(parent->name() == "Gamepad") {
+    auto name = node->name();
+    maybe<InputMapping&> mapping;
+    if(name == "Pause") mapping = virtualPads[*index].start;
+    if(name == "Reset") mapping = nothing;
+    if(name == "Up"   ) mapping = virtualPads[*index].up;
+    if(name == "Down" ) mapping = virtualPads[*index].down;
+    if(name == "Left" ) mapping = virtualPads[*index].left;
+    if(name == "Right") mapping = virtualPads[*index].right;
+    if(name == "1"    ) mapping = virtualPads[*index].a;
+    if(name == "2"    ) mapping = virtualPads[*index].b;
+
+    if(mapping) {
+      auto value = mapping->value();
+      if(auto button = node->cast<ares::Node::Input::Button>()) {
+        button->setValue(value);
+      }
     }
   }
 }
 
 GameGear::GameGear() {
-  interface = new ares::MasterSystem::GameGearInterface;
   medium = mia::medium("Game Gear");
   manufacturer = "Sega";
   name = "Game Gear";
 }
 
 auto GameGear::load() -> bool {
+  if(!ares::MasterSystem::load(root, "[Sega] Game Gear")) return false;
+
   if(auto port = root->find<ares::Node::Port>("Cartridge Slot")) {
     port->allocate();
     port->connect();
@@ -109,20 +137,20 @@ auto GameGear::open(ares::Node::Object node, string name, vfs::file::mode mode, 
   return {};
 }
 
-auto GameGear::input(ares::Node::Input node) -> void {
+auto GameGear::input(ares::Node::Input::Input node) -> void {
   auto name = node->name();
   maybe<InputMapping&> mapping;
-  if(name == "Up"   ) mapping = virtualPad.up;
-  if(name == "Down" ) mapping = virtualPad.down;
-  if(name == "Left" ) mapping = virtualPad.left;
-  if(name == "Right") mapping = virtualPad.right;
-  if(name == "1"    ) mapping = virtualPad.a;
-  if(name == "2"    ) mapping = virtualPad.b;
-  if(name == "Start") mapping = virtualPad.start;
+  if(name == "Up"   ) mapping = virtualPads[0].up;
+  if(name == "Down" ) mapping = virtualPads[0].down;
+  if(name == "Left" ) mapping = virtualPads[0].left;
+  if(name == "Right") mapping = virtualPads[0].right;
+  if(name == "1"    ) mapping = virtualPads[0].a;
+  if(name == "2"    ) mapping = virtualPads[0].b;
+  if(name == "Start") mapping = virtualPads[0].start;
 
   if(mapping) {
     auto value = mapping->value();
-    if(auto button = node->cast<ares::Node::Button>()) {
+    if(auto button = node->cast<ares::Node::Input::Button>()) {
       button->setValue(value);
     }
   }

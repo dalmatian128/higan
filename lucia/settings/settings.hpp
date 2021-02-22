@@ -13,33 +13,36 @@ struct Settings : Markup::Node {
     bool blocking = false;
     bool flush = false;
     string shader = "Blur";
-    uint multiplier = 2;
+    u32 multiplier = 2;
     string output = "Scale";
     bool aspectCorrection = true;
     bool adaptiveSizing = true;
     bool autoCentering = false;
 
-    double luminance = 1.0;
-    double saturation = 1.0;
-    double gamma = 1.0;
+    f64 luminance = 1.0;
+    f64 saturation = 1.0;
+    f64 gamma = 1.0;
     bool colorBleed = true;
     bool colorEmulation = true;
     bool interframeBlending = true;
     bool overscan = false;
+
+    string quality = "SD";
+    bool supersampling = false;
   } video;
 
   struct Audio {
     string driver;
     string device;
-    uint frequency = 0;
-    uint latency = 0;
+    u32 frequency = 0;
+    u32 latency = 0;
     bool exclusive = false;
     bool blocking = true;
     bool dynamic = false;
     bool mute = false;
 
-    double volume = 1.0;
-    double balance = 0.0;
+    f64 volume = 1.0;
+    f64 balance = 0.0;
   } audio;
 
   struct Input {
@@ -47,20 +50,24 @@ struct Settings : Markup::Node {
     string defocus = "Pause";
   } input;
 
+  struct Boot {
+    bool fast = true;
+    bool debugger = false;
+    string prefer = "NTSC-U";
+  } boot;
+
   struct General {
     bool showStatusBar = true;
     bool rewind = false;
     bool runAhead = false;
     bool autoSaveMemory = true;
-    bool fastBoot = true;
-    bool autoDebug = false;
     bool nativeFileDialogs = true;
     bool groupEmulators = true;
   } general;
 
   struct Rewind {
-    uint length = 100;
-    uint frequency = 10;
+    u32 length = 100;
+    u32 frequency = 10;
   } rewind;
 
   struct Paths {
@@ -105,6 +112,17 @@ struct VideoSettings : VerticalLayout {
     HorizontalLayout overscanLayout{this, Size{~0, 0}};
       CheckLabel overscanOption{&overscanLayout, Size{0, 0}, 2};
       Label overscanLabel{&overscanLayout, Size{~0, 0}};
+  //
+  Label renderSettingsLabel{this, Size{~0, 0}, 2};
+  HorizontalLayout renderQualityLayout{this, Size{~0, 0}, 2};
+    RadioLabel renderQualitySD{&renderQualityLayout, Size{0, 0}};
+    RadioLabel renderQualityHD{&renderQualityLayout, Size{0, 0}};
+    RadioLabel renderQualityUHD{&renderQualityLayout, Size{0, 0}};
+    Group renderQualityGroup{&renderQualitySD, &renderQualityHD, &renderQualityUHD};
+  HorizontalLayout renderSupersamplingLayout{this, Size{~0, 0}, 2};
+    CheckLabel renderSupersamplingOption{&renderSupersamplingLayout, Size{0, 0}, 2};
+    Label renderSupersamplingHint{&renderSupersamplingLayout, Size{0, 0}};
+  Label renderSettingsHint{this, Size{0, 0}};
 };
 
 struct AudioSettings : VerticalLayout {
@@ -128,10 +146,13 @@ struct InputSettings : VerticalLayout {
   auto eventChange() -> void;
   auto eventClear() -> void;
   auto eventAssign(TableViewCell) -> void;
-  auto eventInput(shared_pointer<HID::Device>, uint groupID, uint inputID, int16_t oldValue, int16_t newValue) -> void;
+  auto eventInput(shared_pointer<HID::Device>, u32 groupID, u32 inputID, s16 oldValue, s16 newValue) -> void;
   auto setVisible(bool visible = true) -> InputSettings&;
 
-  Label inputLabel{this, Size{~0, 0}, 2};
+  HorizontalLayout indexLayout{this, Size{~0, 0}};
+    ComboButton systemList{&indexLayout, Size{0, 0}};
+    Widget indexSpacer{&indexLayout, Size{~0, 0}};
+    ComboButton deviceList{&indexLayout, Size{0, 0}};
   TableView inputList{this, Size{~0, ~0}};
   HorizontalLayout controlLayout{this, Size{~0, 0}};
     Label assignLabel{&controlLayout, Size{~0, 0}};
@@ -140,7 +161,7 @@ struct InputSettings : VerticalLayout {
     Button clearButton{&controlLayout, Size{80, 0}};
 
   maybe<InputMapping&> activeMapping;
-  uint activeBinding = 0;
+  u32 activeBinding = 0;
   Timer timer;
 };
 
@@ -151,7 +172,7 @@ struct HotkeySettings : VerticalLayout {
   auto eventChange() -> void;
   auto eventClear() -> void;
   auto eventAssign(TableViewCell) -> void;
-  auto eventInput(shared_pointer<HID::Device>, uint groupID, uint inputID, int16_t oldValue, int16_t newValue) -> void;
+  auto eventInput(shared_pointer<HID::Device>, u32 groupID, u32 inputID, s16 oldValue, s16 newValue) -> void;
   auto setVisible(bool visible = true) -> HotkeySettings&;
 
   Label inputLabel{this, Size{~0, 0}, 2};
@@ -163,7 +184,7 @@ struct HotkeySettings : VerticalLayout {
     Button clearButton{&controlLayout, Size{80, 0}};
 
   maybe<InputMapping&> activeMapping;
-  uint activeBinding = 0;
+  u32 activeBinding = 0;
   Timer timer;
 };
 
@@ -191,12 +212,6 @@ struct OptionSettings : VerticalLayout {
   HorizontalLayout autoSaveMemoryLayout{this, Size{~0, 0}, 2};
     CheckLabel autoSaveMemory{&autoSaveMemoryLayout, Size{0, 0}, 2};
     Label autoSaveMemoryHint{&autoSaveMemoryLayout, Size{~0, 0}};
-  HorizontalLayout fastBootLayout{this, Size{~0, 0}, 2};
-    CheckLabel fastBoot{&fastBootLayout, Size{0, 0}, 2};
-    Label fastBootHint{&fastBootLayout, Size{~0, 0}};
-  HorizontalLayout autoDebugLayout{this, Size{~0, 0}, 2};
-    CheckLabel autoDebug{&autoDebugLayout, Size{0, 0}, 2};
-    Label autoDebugHint{&autoDebugLayout, Size{~0, 0}};
   HorizontalLayout nativeFileDialogsLayout{this, Size{~0, 0}, 2};
     CheckLabel nativeFileDialogs{&nativeFileDialogsLayout, Size{0, 0}, 2};
     Label nativeFileDialogsHint{&nativeFileDialogsLayout, Size{~0, 0}};

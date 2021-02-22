@@ -6,10 +6,13 @@ Cartridge& cartridge = cartridgeSlot.cartridge;
 #include "slot.cpp"
 #include "load.cpp"
 #include "save.cpp"
+#include "debugger.cpp"
 #include "serialization.cpp"
 
 auto Cartridge::allocate(Node::Port parent) -> Node::Peripheral {
-  return node = parent->append<Node::Peripheral>(interface->name());
+  node = parent->append<Node::Peripheral>(system.name());
+  debugger.load(node);
+  return node;
 }
 
 auto Cartridge::connect() -> void {
@@ -21,9 +24,9 @@ auto Cartridge::connect() -> void {
   if(auto fp = platform->open(node, "manifest.bml", File::Read, File::Required)) {
     information.manifest = fp->reads();
     information.document = BML::unserialize(information.manifest);
-    information.name     = information.document["game/label"].text();
-    information.region   = information.document["game/region"].text();
-    information.board    = information.document["game/board"].text();
+    information.name     = information.document["game/label"].string();
+    information.region   = information.document["game/region"].string();
+    information.board    = information.document["game/board"].string();
   }
 
   loadCartridge(information.document);
@@ -39,7 +42,6 @@ auto Cartridge::connect() -> void {
   if(has.BSMemorySlot) bsmemorySlot.load(node);
   if(has.SufamiTurboSlotA) sufamiturboSlotA.load(node);
   if(has.SufamiTurboSlotB) sufamiturboSlotB.load(node);
-
   power(false);
 }
 
@@ -59,7 +61,7 @@ auto Cartridge::disconnect() -> void {
   if(has.SPC7110) spc7110.unload();
   if(has.SDD1) sdd1.unload();
   if(has.OBC1) obc1.unload();
-  if(has.MSU1) msu1.unload();
+  if(has.MSU1) msu1.unload(node);
   if(has.BSMemorySlot) bsmemorySlot.unload();
   if(has.SufamiTurboSlotA) sufamiturboSlotA.unload();
   if(has.SufamiTurboSlotB) sufamiturboSlotB.unload();
@@ -67,7 +69,7 @@ auto Cartridge::disconnect() -> void {
   rom.reset();
   ram.reset();
   bus.reset();
-  node = {};
+  node.reset();
 }
 
 auto Cartridge::power(bool reset) -> void {
@@ -103,12 +105,12 @@ auto Cartridge::save() -> void {
 
 auto Cartridge::lookupMemory(Markup::Node memory) -> Markup::Node {
   for(auto node : information.document.find("game/board/memory")) {
-    if(memory["type"        ] && memory["type"        ].text()    != node["type"        ].text()   ) continue;
+    if(memory["type"        ] && memory["type"        ].string()  != node["type"        ].string() ) continue;
     if(memory["size"        ] && memory["size"        ].natural() != node["size"        ].natural()) continue;
-    if(memory["content"     ] && memory["content"     ].text()    != node["content"     ].text()   ) continue;
-    if(memory["manufacturer"] && memory["manufacturer"].text()    != node["manufacturer"].text()   ) continue;
-    if(memory["architecture"] && memory["architecture"].text()    != node["architecture"].text()   ) continue;
-    if(memory["identifier"  ] && memory["identifier"  ].text()    != node["identifier"  ].text()   ) continue;
+    if(memory["content"     ] && memory["content"     ].string()  != node["content"     ].string() ) continue;
+    if(memory["manufacturer"] && memory["manufacturer"].string()  != node["manufacturer"].string() ) continue;
+    if(memory["architecture"] && memory["architecture"].string()  != node["architecture"].string() ) continue;
+    if(memory["identifier"  ] && memory["identifier"  ].string()  != node["identifier"  ].string() ) continue;
     return node;
   }
   return {};

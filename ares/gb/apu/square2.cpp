@@ -14,7 +14,7 @@ auto APU::Square2::run() -> void {
     }
   }
 
-  uint4 sample = dutyOutput ? (uint)volume : 0;
+  n4 sample = dutyOutput ? (u32)volume : 0;
   if(!enable) sample = 0;
 
   output = sample;
@@ -28,7 +28,7 @@ auto APU::Square2::clockLength() -> void {
 
 auto APU::Square2::clockEnvelope() -> void {
   if(enable && envelopeFrequency && --envelopePeriod == 0) {
-    envelopePeriod = envelopeFrequency ? (uint)envelopeFrequency : 8;
+    envelopePeriod = envelopeFrequency ? (u32)envelopeFrequency : 8;
     if(envelopeDirection == 0 && volume >  0) volume--;
     if(envelopeDirection == 1 && volume < 15) volume++;
   }
@@ -37,7 +37,7 @@ auto APU::Square2::clockEnvelope() -> void {
 auto APU::Square2::trigger() -> void {
   enable = dacEnable();
   period = 2 * (2048 - frequency);
-  envelopePeriod = envelopeFrequency ? (uint)envelopeFrequency : 8;
+  envelopePeriod = envelopeFrequency ? (u32)envelopeFrequency : 8;
   volume = envelopeVolume;
 
   if(!length) {
@@ -67,20 +67,20 @@ auto APU::Square2::power(bool initializeLength) -> void {
 }
 
 auto APU::Square2::serialize(serializer& s) -> void {
-  s.integer(enable);
+  s(enable);
 
-  s.integer(duty);
-  s.integer(length);
-  s.integer(envelopeVolume);
-  s.integer(envelopeDirection);
-  s.integer(envelopeFrequency);
-  s.integer(frequency);
-  s.integer(counter);
+  s(duty);
+  s(length);
+  s(envelopeVolume);
+  s(envelopeDirection);
+  s(envelopeFrequency);
+  s(frequency);
+  s(counter);
 
-  s.integer(output);
-  s.integer(dutyOutput);
-  s.integer(phase);
-  s.integer(period);
-  s.integer(envelopePeriod);
-  s.integer(volume);
+  s(output);
+  s(dutyOutput);
+  s(phase);
+  s(period);
+  s(envelopePeriod);
+  s(volume);
 }

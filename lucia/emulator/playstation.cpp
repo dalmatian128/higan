@@ -1,16 +1,17 @@
-#include <ps1/interface/interface.hpp>
+namespace ares::PlayStation {
+  auto load(Node::System& node, string name) -> bool;
+}
 
 struct PlayStation : Emulator {
   PlayStation();
   auto load() -> bool override;
   auto open(ares::Node::Object, string name, vfs::file::mode mode, bool required) -> shared_pointer<vfs::file> override;
-  auto input(ares::Node::Input) -> void override;
+  auto input(ares::Node::Input::Input) -> void override;
 
-  uint regionID = 0;
+  u32 regionID = 0;
 };
 
 PlayStation::PlayStation() {
-  interface = new ares::PlayStation::PlayStationInterface;
   medium = mia::medium("PlayStation");
   manufacturer = "Sony";
   name = "PlayStation";
@@ -21,27 +22,20 @@ PlayStation::PlayStation() {
 }
 
 auto PlayStation::load() -> bool {
-  regionID = 0;  //default to NTSC-U region (for audio CDs)
-  if(auto manifest = medium->manifest(game.location)) {
-    auto document = BML::unserialize(manifest);
-    auto region = document["game/region"].string();
-    //if statements below are ordered by lowest to highest priority
-    if(region == "PAL"   ) regionID = 2;
-    if(region == "NTSC-J") regionID = 1;
-    if(region == "NTSC-U") regionID = 0;
-  }
+  auto region = Emulator::region();
+  //if statements below are ordered by lowest to highest priority
+  if(region == "PAL"   ) regionID = 2;
+  if(region == "NTSC-J") regionID = 1;
+  if(region == "NTSC-U") regionID = 0;
+  if(!ares::PlayStation::load(root, {"[Sony] PlayStation (", region, ")"})) return false;
 
   if(!file::exists(firmware[regionID].location)) {
     errorFirmwareRequired(firmware[regionID]);
     return false;
   }
 
-  if(auto region = root->find<ares::Node::String>("Region")) {
-    region->setValue("NTSC-U → NTSC-J → PAL");
-  }
-
-  if(auto fastBoot = root->find<ares::Node::Boolean>("Fast Boot")) {
-    fastBoot->setValue(settings.general.fastBoot);
+  if(auto fastBoot = root->find<ares::Node::Setting::Boolean>("Fast Boot")) {
+    fastBoot->setValue(settings.boot.fast);
   }
 
   if(auto port = root->find<ares::Node::Port>("PlayStation/Disc Tray")) {
@@ -50,7 +44,12 @@ auto PlayStation::load() -> bool {
   }
 
   if(auto port = root->find<ares::Node::Port>("Controller Port 1")) {
-    port->allocate("Gamepad");
+    port->allocate("Digital Gamepad");
+    port->connect();
+  }
+
+  if(auto port = root->find<ares::Node::Port>("Memory Card Port 1")) {
+    port->allocate("Memory Card");
     port->connect();
   }
 
@@ -64,7 +63,7 @@ auto PlayStation::open(ares::Node::Object node, string name, vfs::file::mode mod
 
   if(name == "manifest.bml") {
     if(game.manifest = medium->manifest(game.location)) {
-      return vfs::memory::open(game.manifest.data<uint8_t>(), game.manifest.size());
+      return vfs::memory::open(game.manifest.data<u8>(), game.manifest.size());
     }
     return Emulator::manifest(game.location);
   }
@@ -89,40 +88,52 @@ auto PlayStation::open(ares::Node::Object node, string name, vfs::file::mode mod
     return vfs::memory::open(game.image.data(), game.image.size());
   }
 
+  if(name == "save.card") {
+    auto location = locate(game.location, ".sav", settings.paths.saves);
+    if(auto result = vfs::disk::open(location, mode)) return result;
+  }
+
   return {};
 }
 
-auto PlayStation::input(ares::Node::Input node) -> void {
-  auto name = node->name();
-  maybe<InputMapping&> mapping;
-  if(name == "Up"      ) mapping = virtualPad.up;
-  if(name == "Down"    ) mapping = virtualPad.down;
-  if(name == "Left"    ) mapping = virtualPad.left;
-  if(name == "Right"   ) mapping = virtualPad.right;
-  if(name == "Cross"   ) mapping = virtualPad.a;
-  if(name == "Circle"  ) mapping = virtualPad.b;
-  if(name == "Square"  ) mapping = virtualPad.x;
-  if(name == "Triangle") mapping = virtualPad.y;
-  if(name == "L1"      ) mapping = virtualPad.l;
-  if(name == "L2"      );
-  if(name == "R1"      ) mapping = virtualPad.r;
-  if(name == "R2"      );
-  if(name == "Select"  ) mapping = virtualPad.select;
-  if(name == "Start"   ) mapping = virtualPad.start;
-  if(name == "LX-axis" ) mapping = virtualPad.xAxis;
-  if(name == "LY-axis" ) mapping = virtualPad.yAxis;
-  if(name == "RX-axis" );
-  if(name == "RY-axis" );
-  if(name == "L-thumb" );
-  if(name == "R-thumb" );
+auto PlayStation::input(ares::Node::Input::Input node) -> void {
+  auto parent = ares::Node::parent(node);
+  if(!parent) return;
 
-  if(mapping) {
-    auto value = mapping->value();
-    if(auto axis = node->cast<ares::Node::Axis>()) {
-      axis->setValue(value);
-    }
-    if(auto button = node->cast<ares::Node::Button>()) {
-      button->setValue(value);
+  auto port = ares::Node::parent(parent);
+  if(!port) return;
+
+  maybe<u32> index;
+  if(port->name() == "Controller Port 1") index = 0;
+  if(port->name() == "Controller Port 2") index = 1;
+  if(!index) return;
+
+  if(parent->name() == "Digital Gamepad") {
+    auto name = node->name();
+    maybe<InputMapping&> mapping;
+    if(name == "Up"      ) mapping = virtualPads[*index].up;
+    if(name == "Down"    ) mapping = virtualPads[*index].down;
+    if(name == "Left"    ) mapping = virtualPads[*index].left;
+    if(name == "Right"   ) mapping = virtualPads[*index].right;
+    if(name == "Cross"   ) mapping = virtualPads[*index].a;
+    if(name == "Circle"  ) mapping = virtualPads[*index].b;
+    if(name == "Square"  ) mapping = virtualPads[*index].x;
+    if(name == "Triangle") mapping = virtualPads[*index].y;
+    if(name == "L1"      ) mapping = virtualPads[*index].l1;
+    if(name == "L2"      ) mapping = virtualPads[*index].l2;
+    if(name == "R1"      ) mapping = virtualPads[*index].r1;
+    if(name == "R2"      ) mapping = virtualPads[*index].r2;
+    if(name == "Select"  ) mapping = virtualPads[*index].select;
+    if(name == "Start"   ) mapping = virtualPads[*index].start;
+
+    if(mapping) {
+      auto value = mapping->value();
+      if(auto axis = node->cast<ares::Node::Input::Axis>()) {
+        axis->setValue(value);
+      }
+      if(auto button = node->cast<ares::Node::Input::Button>()) {
+        button->setValue(value);
+      }
     }
   }
 }

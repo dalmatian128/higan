@@ -4,7 +4,7 @@ HitachiDSP hitachidsp;
 #include "serialization.cpp"
 
 auto HitachiDSP::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("Hitachi");
+  node = parent->append<Node::Object>("Hitachi");
 
   debugger.load(node);
 }
@@ -19,7 +19,7 @@ auto HitachiDSP::unload() -> void {
   Thread::destroy();
 }
 
-auto HitachiDSP::step(uint clocks) -> void {
+auto HitachiDSP::step(u32 clocks) -> void {
   HG51B::step(clocks);
   Thread::step(clocks);
   Thread::synchronize(cpu);

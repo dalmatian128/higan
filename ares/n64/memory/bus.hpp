@@ -25,7 +25,12 @@
   if(address <= 0x0500'05bf) return dd.ms.access(__VA_ARGS__); \
   if(address <= 0x05ff'ffff) return unmapped; \
   if(address <= 0x063f'ffff) return dd.iplrom.access(__VA_ARGS__); \
-  if(address <= 0x0fff'ffff) return unmapped; \
+  if(address <= 0x07ff'ffff) return unmapped; \
+  if(address <= 0x0fff'ffff) { \
+    if(cartridge.ram  ) return cartridge.ram.access(__VA_ARGS__); \
+    if(cartridge.flash) return cartridge.flash.access(__VA_ARGS__); \
+    return unmapped; \
+  } \
   if(address <= 0x1fbf'ffff) return cartridge.rom.access(__VA_ARGS__); \
   if(address <= 0x1fc0'07bf) return pi.rom.access(__VA_ARGS__); \
   if(address <= 0x1fc0'07ff) return pi.ram.access(__VA_ARGS__); \
@@ -48,9 +53,9 @@ inline auto Bus::readWord(u32 address) -> u32 {
   decode(0, readWord, address);
 }
 
-inline auto Bus::readDouble(u32 address) -> u64 {
+inline auto Bus::readDual(u32 address) -> u64 {
   address &= 0x1fff'fff8;
-  decode(0, readDouble, address);
+  decode(0, readDual, address);
 }
 
 #undef unmapped
@@ -74,11 +79,11 @@ inline auto Bus::writeWord(u32 address, u32 data) -> void {
   decode(1, writeWord, address, data);
 }
 
-inline auto Bus::writeDouble(u32 address, u64 data) -> void {
+inline auto Bus::writeDual(u32 address, u64 data) -> void {
   address &= 0x1fff'fff8;
   cpu.recompiler.invalidate(address + 0);
   cpu.recompiler.invalidate(address + 4);
-  decode(2, writeDouble, address, data);
+  decode(2, writeDual, address, data);
 }
 
 #undef unmapped

@@ -1,28 +1,32 @@
 #pragma once
 
 //{
+  //call reg
   auto call(reg64 rt) {
-    auto _rt = (uint)rt;
+    auto _rt = (u32)rt;
     emit.rex(0, 0, 0, _rt & 8);
     emit.byte(0xff);
     emit.modrm(3, 2, _rt & 7);
   }
 
+  //mov reg,imm
   auto mov(reg64 rt, imm32 is) {
-    auto _rt = (uint)rt;
+    auto _rt = (u32)rt;
     emit.rex(1, 0, 0, _rt & 8);
     emit.byte(0xc7);
     emit.modrm(3, 0, _rt & 7);
     emit.dword(is.data);
   }
 
+  //mov reg,imm
   auto mov(reg64 rt, imm64 is) {
-    auto _rt = (uint)rt;
+    auto _rt = (u32)rt;
     emit.rex(1, 0, 0, _rt & 8);
     emit.byte(0xb8 | _rt & 7);
     emit.qword(is.data);
   }
 
+  //mov reg,[mem]
   auto mov(reg64 rt, mem64 ps) {
     if(unlikely(rt != rax)) throw;
     emit.rex(1, 0, 0, 0);
@@ -30,10 +34,49 @@
     emit.qword(ps.data);
   }
 
-  auto ret() { emit.byte(0xc3); }
+  //mov [mem],reg
+  auto mov(mem64 pt, reg64 rs) {
+    if(unlikely(rs != rax)) throw;
+    emit.rex(1, 0, 0, 0);
+    emit.byte(0xa3);
+    emit.qword(pt.data);
+  }
+
+  //mov [reg+mem],reg
+  //todo: add more valid register combinations
+  auto mov(dis64 dt, reg64 rs) {
+    if(unlikely(dt.base != rsp)) throw;
+    if(unlikely(rs != rax)) throw;
+    emit.rex(1, 0, 0, 0);
+    emit.byte(0x89);
+    emit.modrm(2, 0, 4);
+    emit.sib(0, 4, 4);
+    emit.dword(dt.offset);
+  }
+
+  //ret
+  auto ret() {
+    emit.byte(0xc3);
+  }
+
+  //inc reg
+  auto inc(reg64 rt) {
+    auto _rt = (u32)rt;
+    emit.rex(1, 0, 0, _rt & 8);
+    emit.byte(0xff);
+    emit.modrm(3, 0, _rt & 7);
+  }
+
+  //dec reg
+  auto dec(reg64 rt) {
+    auto _rt = (u32)rt;
+    emit.rex(1, 0, 0, _rt & 8);
+    emit.byte(0xff);
+    emit.modrm(3, 1, _rt & 7);
+  }
 
   #define op(code) \
-    auto _rt = (uint)rt, _rs = (uint)rs; \
+    auto _rt = (u32)rt, _rs = (u32)rs; \
     emit.rex(0, _rs & 8, 0, _rt & 8); \
     emit.byte(code); \
     emit.modrm(3, _rs & 7, _rt & 7);
@@ -50,7 +93,7 @@
   #undef op
 
   #define op(code) \
-    auto _rt = (uint)rt, _rs = (uint)rs; \
+    auto _rt = (u32)rt, _rs = (u32)rs; \
     emit.byte(0x66); \
     emit.rex(0, _rs & 8, 0, _rt & 8); \
     emit.byte(code); \
@@ -68,7 +111,7 @@
   #undef op
 
   #define op(code) \
-    auto _rt = (uint)rt, _rs = (uint)rs; \
+    auto _rt = (u32)rt, _rs = (u32)rs; \
     emit.rex(0, _rs & 8, 0, _rt & 8); \
     emit.byte(code); \
     emit.modrm(3, _rs & 7, _rt & 7);
@@ -85,7 +128,7 @@
   #undef op
 
   #define op(code) \
-    auto _rt = (uint)rt, _rs = (uint)rs; \
+    auto _rt = (u32)rt, _rs = (u32)rs; \
     emit.rex(1, _rs & 8, 0, _rt & 8); \
     emit.byte(code); \
     emit.modrm(3, _rs & 7, _rt & 7);
@@ -99,9 +142,10 @@
   auto sub (reg64 rt, reg64 rs) { op(0x29); }
   auto test(reg64 rt, reg64 rs) { op(0x85); }
   auto xor (reg64 rt, reg64 rs) { op(0x31); }
+  #undef op
 
   #define op(code, reg) \
-    auto _rt = (uint)rt; \
+    auto _rt = (u32)rt; \
     emit.rex(1, 0, 0, _rt & 8); \
     emit.byte(code); \
     emit.modrm(3, reg, _rt & 7); \

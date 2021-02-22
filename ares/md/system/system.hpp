@@ -1,28 +1,29 @@
 extern Random random;
 
 struct System {
-  Node::Object node;
-  Node::Boolean tmss;
-  Node::String regionNode;
+  Node::System node;
+  Node::Setting::Boolean tmss;
 
   struct Controls {
     Node::Object node;
-    Node::Button reset;
+    Node::Input::Button reset;
 
     //controls.cpp
     auto load(Node::Object) -> void;
     auto poll() -> void;
   } controls;
 
-  enum class Region : uint { NTSCJ, NTSCU, PAL };
+  enum class Region : u32 { NTSCJ, NTSCU, PAL };
 
+  auto name() const -> string { return information.name; }
   auto region() const -> Region { return information.region; }
   auto megaCD() const -> bool { return information.megaCD; }
   auto frequency() const -> double { return information.frequency; }
 
+  auto game() -> string;
   auto run() -> void;
 
-  auto load(Node::Object&) -> void;
+  auto load(Node::System& node, string name) -> bool;
   auto unload() -> void;
   auto save() -> void;
   auto power(bool reset) -> void;
@@ -33,16 +34,14 @@ struct System {
 
 private:
   struct Information {
+    string name = "Mega Drive";
     Region region = Region::NTSCJ;
     bool megaCD = false;
     double frequency = Constants::Colorburst::NTSC * 15.0;
-    uint32 serializeSize[2];
   } information;
 
   //serialization.cpp
-  auto serialize(serializer&) -> void;
-  auto serializeAll(serializer&, bool synchronize) -> void;
-  auto serializeInit(bool synchronize) -> uint;
+  auto serialize(serializer&, bool synchronize) -> void;
 };
 
 extern System system;

@@ -10,7 +10,7 @@ SMP smp;
 #include "serialization.cpp"
 
 auto SMP::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("SMP");
+  node = parent->append<Node::Object>("SMP");
 
   debugger.load(node);
 }
@@ -30,7 +30,7 @@ auto SMP::main() -> void {
 
 auto SMP::power(bool reset) -> void {
   if(auto fp = platform->open(system.node, "ipl.rom", File::Read, File::Required)) {
-    fp->read(iplrom, 64);
+    fp->read({iplrom, 64});
   }
 
   SPC700::power();

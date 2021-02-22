@@ -39,10 +39,17 @@
   struct mem64 {
     explicit mem64(u64 data) : data(data) {}
     template<typename T> explicit mem64(T* pointer) : data((u64)pointer) {}
+    template<typename T, typename C> explicit mem64(T C::*variable, C* object) {
+      union force_cast_ub {
+        T C::*variable;
+        u64 pointer;
+      } cast{variable};
+      data = cast.pointer + u64(object);
+    }
     u64 data;
   };
 
-  enum class reg8 : uint {
+  enum class reg8 : u32 {
     al, cl, dl, bl, ah, ch, dh, bh, r8b, r9b, r10b, r11b, r12b, r13b, r14b, r15b,
   };
   static constexpr reg8 al   = reg8::al;
@@ -62,7 +69,7 @@
   static constexpr reg8 r14b = reg8::r14b;
   static constexpr reg8 r15b = reg8::r15b;
 
-  enum class reg16 : uint {
+  enum class reg16 : u32 {
     ax, cx, dx, bx, sp, bp, si, di, r8w, r9w, r10w, r11w, r12w, r13w, r14w, r15w,
   };
   static constexpr reg16 ax   = reg16::ax;
@@ -82,7 +89,7 @@
   static constexpr reg16 r14w = reg16::r14w;
   static constexpr reg16 r15w = reg16::r15w;
 
-  enum class reg32 : uint {
+  enum class reg32 : u32 {
     eax, ecx, edx, ebx, esp, ebp, esi, edi, r8d, r9d, r10d, r11d, r12d, r13d, r14d, r15d,
   };
   static constexpr reg32 eax  = reg32::eax;
@@ -102,7 +109,7 @@
   static constexpr reg32 r14d = reg32::r14d;
   static constexpr reg32 r15d = reg32::r15d;
 
-  enum class reg64 : uint {
+  enum class reg64 : u32 {
     rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15,
   };
   static constexpr reg64 rax = reg64::rax;
@@ -121,4 +128,10 @@
   static constexpr reg64 r13 = reg64::r13;
   static constexpr reg64 r14 = reg64::r14;
   static constexpr reg64 r15 = reg64::r15;
+
+  struct dis64 {
+    explicit dis64(reg64 base, s32 offset) : base(base), offset(offset) {}
+    reg64 base;
+    s32 offset;
+  };
 //};

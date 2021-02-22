@@ -1,39 +1,40 @@
-#include <pce/interface/interface.hpp>
+namespace ares::PCEngine {
+  auto load(Node::System& node, string name) -> bool;
+}
 
 struct PCEngine : Emulator {
   PCEngine();
   auto load() -> bool override;
   auto open(ares::Node::Object, string name, vfs::file::mode mode, bool required) -> shared_pointer<vfs::file> override;
-  auto input(ares::Node::Input) -> void override;
+  auto input(ares::Node::Input::Input) -> void override;
 };
 
 struct PCEngineCD : Emulator {
   PCEngineCD();
   auto load() -> bool override;
   auto open(ares::Node::Object, string name, vfs::file::mode mode, bool required) -> shared_pointer<vfs::file> override;
-  auto input(ares::Node::Input) -> void override;
+  auto input(ares::Node::Input::Input) -> void override;
 
-  uint regionID = 0;
+  u32 regionID = 0;
 };
 
 struct SuperGrafx : Emulator {
   SuperGrafx();
   auto load() -> bool override;
   auto open(ares::Node::Object, string name, vfs::file::mode mode, bool required) -> shared_pointer<vfs::file> override;
-  auto input(ares::Node::Input) -> void override;
+  auto input(ares::Node::Input::Input) -> void override;
 };
 
 PCEngine::PCEngine() {
-  interface = new ares::PCEngine::PCEngineInterface;
   medium = mia::medium("PC Engine");
   manufacturer = "NEC";
   name = "PC Engine";
 }
 
 auto PCEngine::load() -> bool {
-  if(auto region = root->find<ares::Node::String>("Region")) {
-    region->setValue("NTSC-U → NTSC-J");
-  }
+  auto region = Emulator::region();
+  string system = region == "NTSC-J" ? "PC Engine" : "TurboGrafx 16";
+  if(!ares::PCEngine::load(root, {"[NEC] ", system, " (", region, ")"})) return false;
 
   if(auto port = root->find<ares::Node::Port>("Cartridge Slot")) {
     port->allocate();
@@ -72,28 +73,27 @@ auto PCEngine::open(ares::Node::Object node, string name, vfs::file::mode mode, 
   return {};
 }
 
-auto PCEngine::input(ares::Node::Input node) -> void {
+auto PCEngine::input(ares::Node::Input::Input node) -> void {
   auto name = node->name();
   maybe<InputMapping&> mapping;
-  if(name == "Up"    ) mapping = virtualPad.up;
-  if(name == "Down"  ) mapping = virtualPad.down;
-  if(name == "Left"  ) mapping = virtualPad.left;
-  if(name == "Right" ) mapping = virtualPad.right;
-  if(name == "II"    ) mapping = virtualPad.a;
-  if(name == "I"     ) mapping = virtualPad.b;
-  if(name == "Select") mapping = virtualPad.select;
-  if(name == "Run"   ) mapping = virtualPad.start;
+  if(name == "Up"    ) mapping = virtualPads[0].up;
+  if(name == "Down"  ) mapping = virtualPads[0].down;
+  if(name == "Left"  ) mapping = virtualPads[0].left;
+  if(name == "Right" ) mapping = virtualPads[0].right;
+  if(name == "II"    ) mapping = virtualPads[0].a;
+  if(name == "I"     ) mapping = virtualPads[0].b;
+  if(name == "Select") mapping = virtualPads[0].select;
+  if(name == "Run"   ) mapping = virtualPads[0].start;
 
   if(mapping) {
     auto value = mapping->value();
-    if(auto button = node->cast<ares::Node::Button>()) {
+    if(auto button = node->cast<ares::Node::Input::Button>()) {
       button->setValue(value);
     }
   }
 }
 
 PCEngineCD::PCEngineCD() {
-  interface = new ares::PCEngine::PCEngineInterface;
   medium = mia::medium("PC Engine CD");
   manufacturer = "NEC";
   name = "PC Engine CD";
@@ -103,22 +103,16 @@ PCEngineCD::PCEngineCD() {
 }
 
 auto PCEngineCD::load() -> bool {
-  regionID = 1;  //default to NTSC-J region (for audio CDs)
-  if(auto manifest = medium->manifest(game.location)) {
-    auto document = BML::unserialize(manifest);
-    auto region = document["game/region"].string();
-    //if statements below are ordered by lowest to highest priority
-    if(region == "NTSC-J") regionID = 1;
-    if(region == "NTSC-U") regionID = 0;
-  }
+  auto region = Emulator::region();
+  auto system = region == "NTSC-J" ? "PC Engine" : "TurboGrafx 16";
+  //if statements below are ordered by lowest to highest priority
+  if(region == "NTSC-J") regionID = 1;
+  if(region == "NTSC-U") regionID = 0;
+  if(!ares::PCEngine::load(root, {"[NEC] ", system, " (", region, ")"})) return false;
 
   if(!file::exists(firmware[regionID].location)) {
     errorFirmwareRequired(firmware[regionID]);
     return false;
-  }
-
-  if(auto region = root->find<ares::Node::String>("Region")) {
-    region->setValue("NTSC-J → NTSC-U");
   }
 
   if(auto port = root->find<ares::Node::Port>("Cartridge Slot")) {
@@ -158,7 +152,7 @@ auto PCEngineCD::open(ares::Node::Object node, string name, vfs::file::mode mode
   if(node->name() == "PC Engine CD") {
     if(name == "manifest.bml") {
       if(auto manifest = medium->manifest(game.location)) {
-        return vfs::memory::open(manifest.data<uint8_t>(), manifest.size());
+        return vfs::memory::open(manifest.data<u8>(), manifest.size());
       }
       return Emulator::manifest(game.location);
     }
@@ -183,37 +177,34 @@ auto PCEngineCD::open(ares::Node::Object node, string name, vfs::file::mode mode
   return {};
 }
 
-auto PCEngineCD::input(ares::Node::Input node) -> void {
+auto PCEngineCD::input(ares::Node::Input::Input node) -> void {
   auto name = node->name();
   maybe<InputMapping&> mapping;
-  if(name == "Up"    ) mapping = virtualPad.up;
-  if(name == "Down"  ) mapping = virtualPad.down;
-  if(name == "Left"  ) mapping = virtualPad.left;
-  if(name == "Right" ) mapping = virtualPad.right;
-  if(name == "II"    ) mapping = virtualPad.a;
-  if(name == "I"     ) mapping = virtualPad.b;
-  if(name == "Select") mapping = virtualPad.select;
-  if(name == "Run"   ) mapping = virtualPad.start;
+  if(name == "Up"    ) mapping = virtualPads[0].up;
+  if(name == "Down"  ) mapping = virtualPads[0].down;
+  if(name == "Left"  ) mapping = virtualPads[0].left;
+  if(name == "Right" ) mapping = virtualPads[0].right;
+  if(name == "II"    ) mapping = virtualPads[0].a;
+  if(name == "I"     ) mapping = virtualPads[0].b;
+  if(name == "Select") mapping = virtualPads[0].select;
+  if(name == "Run"   ) mapping = virtualPads[0].start;
 
   if(mapping) {
     auto value = mapping->value();
-    if(auto button = node->cast<ares::Node::Button>()) {
+    if(auto button = node->cast<ares::Node::Input::Button>()) {
       button->setValue(value);
     }
   }
 }
 
 SuperGrafx::SuperGrafx() {
-  interface = new ares::PCEngine::SuperGrafxInterface;
   medium = mia::medium("SuperGrafx");
   manufacturer = "NEC";
   name = "SuperGrafx";
 }
 
 auto SuperGrafx::load() -> bool {
-  if(auto region = root->find<ares::Node::String>("Region")) {
-    region->setValue("NTSC-U → NTSC-J");
-  }
+  if(!ares::PCEngine::load(root, "[NEC] SuperGrafx (NTSC-J)")) return false;
 
   if(auto port = root->find<ares::Node::Port>("Cartridge Slot")) {
     port->allocate();
@@ -252,21 +243,21 @@ auto SuperGrafx::open(ares::Node::Object node, string name, vfs::file::mode mode
   return {};
 }
 
-auto SuperGrafx::input(ares::Node::Input node) -> void {
+auto SuperGrafx::input(ares::Node::Input::Input node) -> void {
   auto name = node->name();
   maybe<InputMapping&> mapping;
-  if(name == "Up"    ) mapping = virtualPad.up;
-  if(name == "Down"  ) mapping = virtualPad.down;
-  if(name == "Left"  ) mapping = virtualPad.left;
-  if(name == "Right" ) mapping = virtualPad.right;
-  if(name == "II"    ) mapping = virtualPad.a;
-  if(name == "I"     ) mapping = virtualPad.b;
-  if(name == "Select") mapping = virtualPad.select;
-  if(name == "Run"   ) mapping = virtualPad.start;
+  if(name == "Up"    ) mapping = virtualPads[0].up;
+  if(name == "Down"  ) mapping = virtualPads[0].down;
+  if(name == "Left"  ) mapping = virtualPads[0].left;
+  if(name == "Right" ) mapping = virtualPads[0].right;
+  if(name == "II"    ) mapping = virtualPads[0].a;
+  if(name == "I"     ) mapping = virtualPads[0].b;
+  if(name == "Select") mapping = virtualPads[0].select;
+  if(name == "Run"   ) mapping = virtualPads[0].start;
 
   if(mapping) {
     auto value = mapping->value();
-    if(auto button = node->cast<ares::Node::Button>()) {
+    if(auto button = node->cast<ares::Node::Input::Button>()) {
       button->setValue(value);
     }
   }

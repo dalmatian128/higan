@@ -6,9 +6,9 @@ PSG psg;
 #include "serialization.cpp"
 
 auto PSG::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("PSG");
+  node = parent->append<Node::Object>("PSG");
 
-  stream = node->append<Node::Stream>("PSG");
+  stream = node->append<Node::Audio::Stream>("PSG");
   stream->setChannels(1);
   stream->setFrequency(system.frequency() / 15.0 / 16.0);
   stream->addHighPassFilter(  20.0, 1);
@@ -16,8 +16,9 @@ auto PSG::load(Node::Object parent) -> void {
 }
 
 auto PSG::unload() -> void {
-  node = {};
-  stream = {};
+  node->remove(stream);
+  stream.reset();
+  node.reset();
 }
 
 auto PSG::main() -> void {
@@ -27,11 +28,11 @@ auto PSG::main() -> void {
   output += volume[channels[1]];
   output += volume[channels[2]];
   output += volume[channels[3]];
-  stream->sample(output / 4.0 * 0.625);
+  stream->frame(output / 4.0 * 0.625);
   step(16);
 }
 
-auto PSG::step(uint clocks) -> void {
+auto PSG::step(u32 clocks) -> void {
   Thread::step(clocks);
   Thread::synchronize(cpu, apu);
 }
@@ -40,7 +41,7 @@ auto PSG::power(bool reset) -> void {
   SN76489::power();
   Thread::create(system.frequency() / 15.0, {&PSG::main, this});
 
-  for(uint level : range(15)) {
+  for(u32 level : range(15)) {
     volume[level] = pow(2, level * -2.0 / 6.0);
   }
   volume[15] = 0;

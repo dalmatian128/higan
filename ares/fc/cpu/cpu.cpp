@@ -11,7 +11,7 @@ CPU cpu;
 auto CPU::load(Node::Object parent) -> void {
   ram.allocate(2_KiB);
 
-  node = parent->append<Node::Component>("CPU");
+  node = parent->append<Node::Object>("CPU");
 
   debugger.load(node);
 }
@@ -32,7 +32,7 @@ auto CPU::main() -> void {
   instruction();
 }
 
-auto CPU::step(uint clocks) -> void {
+auto CPU::step(u32 clocks) -> void {
   Thread::step(clocks);
   Thread::synchronize();
 }
@@ -42,11 +42,9 @@ auto CPU::power(bool reset) -> void {
   MOS6502::power();
   Thread::create(system.frequency(), {&CPU::main, this});
 
-  if(!reset) for(auto& data : ram) data = 0xff;
-  ram[0x008] = 0xf7;  //todo: what is this about?
-  ram[0x009] = 0xef;
-  ram[0x00a] = 0xdf;
-  ram[0x00f] = 0xbf;
+  if(!reset) {
+    ram.fill(0xff);
+  }
 
   r.pc.byte(0) = readBus(0xfffc);
   r.pc.byte(1) = readBus(0xfffd);

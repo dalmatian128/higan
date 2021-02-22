@@ -49,11 +49,12 @@ struct VideoCGL : VideoDriver, OpenGL {
 
   auto setBlocking(bool blocking) -> bool override {
     if(!view) return true;
+    acquireContext();
     @autoreleasepool {
-      [[view openGLContext] makeCurrentContext];
-      int blocking = self.blocking;
+      s32 blocking = self.blocking;
       [[view openGLContext] setValues:&blocking forParameter:NSOpenGLCPSwapInterval];
     }
+    releaseContext();
     return true;
   }
 
@@ -62,7 +63,9 @@ struct VideoCGL : VideoDriver, OpenGL {
   }
 
   auto setShader(string shader) -> bool override {
+    acquireContext();
     OpenGL::setShader(shader);
+    releaseContext();
     return true;
   }
 
@@ -71,15 +74,17 @@ struct VideoCGL : VideoDriver, OpenGL {
   }
 
   auto clear() -> void override {
+    acquireContext();
     @autoreleasepool {
       [view lockFocus];
       OpenGL::clear();
       [[view openGLContext] flushBuffer];
       [view unlockFocus];
     }
+    releaseContext();
   }
 
-  auto size(uint& width, uint& height) -> void override {
+  auto size(u32& width, u32& height) -> void override {
     @autoreleasepool {
       auto area = [view convertRectToBacking:[view bounds]];
       width = area.size.width;
@@ -87,16 +92,20 @@ struct VideoCGL : VideoDriver, OpenGL {
     }
   }
 
-  auto acquire(uint32_t*& data, uint& pitch, uint width, uint height) -> bool override {
+  auto acquire(u32*& data, u32& pitch, u32 width, u32 height) -> bool override {
+    acquireContext();
     OpenGL::size(width, height);
-    return OpenGL::lock(data, pitch);
+    bool result = OpenGL::lock(data, pitch);
+    releaseContext();
+    return result;
   }
 
   auto release() -> void override {
   }
 
-  auto output(uint width, uint height) -> void override {
-    uint windowWidth, windowHeight;
+  auto output(u32 width, u32 height) -> void override {
+    acquireContext();
+    u32 windowWidth, windowHeight;
     size(windowWidth, windowHeight);
 
     @autoreleasepool {
@@ -114,9 +123,24 @@ struct VideoCGL : VideoDriver, OpenGL {
         [view unlockFocus];
       }
     }
+    releaseContext();
   }
 
 private:
+  auto acquireContext() -> void {
+    lock_guard<recursive_mutex> lock(mutex);
+    @autoreleasepool {
+      [[view openGLContext] makeCurrentContext];
+    }
+  }
+
+  auto releaseContext() -> void {
+    lock_guard<recursive_mutex> lock(mutex);
+    @autoreleasepool {
+      [NSOpenGLContext clearCurrentContext];
+    }
+  }
+
   auto initialize() -> bool {
     terminate();
     if(!self.fullScreen && !self.context) return false;
@@ -155,17 +179,19 @@ private:
 
       OpenGL::initialize(self.shader);
 
-      int blocking = self.blocking;
+      s32 blocking = self.blocking;
       [[view openGLContext] setValues:&blocking forParameter:NSOpenGLCPSwapInterval];
 
       [view unlockFocus];
     }
 
+    releaseContext();
     clear();
     return _ready = true;
   }
 
   auto terminate() -> void {
+    acquireContext();
     _ready = false;
     OpenGL::terminate();
 
@@ -191,6 +217,7 @@ private:
   RubyWindowCGL* window = nullptr;
 
   bool _ready = false;
+  std::recursive_mutex mutex;
 };
 
 @implementation RubyVideoCGL : NSOpenGLView

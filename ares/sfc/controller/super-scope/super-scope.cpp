@@ -13,14 +13,14 @@
 SuperScope::SuperScope(Node::Port parent) {
   node = parent->append<Node::Peripheral>("Super Scope");
 
-  x       = node->append<Node::Axis  >("X");
-  y       = node->append<Node::Axis  >("Y");
-  trigger = node->append<Node::Button>("Trigger");
-  cursor  = node->append<Node::Button>("Cursor");
-  turbo   = node->append<Node::Button>("Turbo");
-  pause   = node->append<Node::Button>("Pause");
+  x       = node->append<Node::Input::Axis  >("X");
+  y       = node->append<Node::Input::Axis  >("Y");
+  trigger = node->append<Node::Input::Button>("Trigger");
+  cursor  = node->append<Node::Input::Button>("Cursor");
+  turbo   = node->append<Node::Input::Button>("Turbo");
+  pause   = node->append<Node::Input::Button>("Pause");
 
-  sprite = node->append<Node::Sprite>("Crosshair");
+  sprite = node->append<Node::Video::Sprite>("Crosshair");
   sprite->setImage(Resource::Sprite::SuperFamicom::CrosshairGreen);
   ppu.screen->attach(sprite);
 
@@ -34,10 +34,10 @@ SuperScope::~SuperScope() {
 }
 
 auto SuperScope::main() -> void {
-  uint next = cpu.vcounter() * 1364 + cpu.hcounter();
+  u32 next = cpu.vcounter() * 1364 + cpu.hcounter();
 
   if(!offscreen) {
-    uint target = cy * 1364 + (cx + 24) * 4;
+    u32 target = cy * 1364 + (cx + 24) * 4;
     if(next >= target && previous < target) {
       //CRT raster detected, strobe iobit to latch counters
       iobit(0);
@@ -49,8 +49,8 @@ auto SuperScope::main() -> void {
     //Vcounter wrapped back to zero; update cursor coordinates for start of new frame
     platform->input(x);
     platform->input(y);
-    int nx = x->value() + cx;
-    int ny = y->value() + cy;
+    s32 nx = x->value() + cx;
+    s32 ny = y->value() + cy;
     cx = max(-16, min(256 + 16, nx));
     cy = max(-16, min(240 + 16, ny));
     offscreen = (cx < 0 || cy < 0 || cx >= 256 || cy >= ppu.vdisp());
@@ -63,7 +63,7 @@ auto SuperScope::main() -> void {
   synchronize(cpu);
 }
 
-auto SuperScope::data() -> uint2 {
+auto SuperScope::data() -> n2 {
   if(counter == 0) {
     //turbo is a switch; toggle is edge sensitive
     platform->input(turbo);
@@ -121,7 +121,7 @@ auto SuperScope::data() -> uint2 {
   return 1;
 }
 
-auto SuperScope::latch(bool data) -> void {
+auto SuperScope::latch(n1 data) -> void {
   if(latched != data) {
     latched = data;
     counter = 0;

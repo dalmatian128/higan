@@ -11,7 +11,7 @@ auto CPU::load(Node::Object parent) -> void {
   if(Model::MSX()) ram.allocate(64_KiB);
   if(Model::MSX2()) ram.allocate(256_KiB);
 
-  node = parent->append<Node::Component>("CPU");
+  node = parent->append<Node::Object>("CPU");
 
   debugger.load(node);
 }
@@ -32,7 +32,7 @@ auto CPU::main() -> void {
   instruction();
 }
 
-auto CPU::step(uint clocks) -> void {
+auto CPU::step(u32 clocks) -> void {
   Thread::step(clocks);
   Thread::synchronize();
 }

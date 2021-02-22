@@ -1,14 +1,14 @@
 struct System : IO {
-  Node::Object node;
-  Node::Boolean headphones;
+  Node::System node;
+  Node::Setting::Boolean headphones;
 
-  enum class SoC : uint {
+  enum class SoC : u32 {
     ASWAN,
     SPHINX,
     SPHINX2,
   };
 
-  enum class Model : uint {
+  enum class Model : u32 {
     WonderSwan,
     WonderSwanColor,
     SwanCrystal,
@@ -19,32 +19,32 @@ struct System : IO {
     Node::Object node;
 
     //WonderSwan, WonderSwan Color, SwanCrystal
-    Node::Button y1;
-    Node::Button y2;
-    Node::Button y3;
-    Node::Button y4;
-    Node::Button x1;
-    Node::Button x2;
-    Node::Button x3;
-    Node::Button x4;
-    Node::Button b;
-    Node::Button a;
-    Node::Button start;
-    Node::Button volume;
+    Node::Input::Button y1;
+    Node::Input::Button y2;
+    Node::Input::Button y3;
+    Node::Input::Button y4;
+    Node::Input::Button x1;
+    Node::Input::Button x2;
+    Node::Input::Button x3;
+    Node::Input::Button x4;
+    Node::Input::Button b;
+    Node::Input::Button a;
+    Node::Input::Button start;
+    Node::Input::Button volume;
 
     //Pocket Challenge V2
-    Node::Button up;
-    Node::Button down;
-    Node::Button left;
-    Node::Button right;
-    Node::Button pass;
-    Node::Button circle;
-    Node::Button clear;
-    Node::Button view;
-    Node::Button escape;
+    Node::Input::Button up;
+    Node::Input::Button down;
+    Node::Input::Button left;
+    Node::Input::Button right;
+    Node::Input::Button pass;
+    Node::Input::Button circle;
+    Node::Input::Button clear;
+    Node::Input::Button view;
+    Node::Input::Button escape;
 
     //all models
-    Node::Button power;
+    Node::Input::Button power;
 
     //controls.cpp
     auto load(Node::Object) -> void;
@@ -55,10 +55,11 @@ struct System : IO {
     bool rightLatch = 0;
   } controls;
 
+  auto name() const -> string { return information.name; }
   auto model() const -> Model { return information.model; }
   auto soc() const -> SoC { return information.soc; }
-  auto mode() const -> uint3 { return io.mode; }
-  auto memory() const -> uint { return io.mode.bit(2) == 0 ? 16_KiB : 64_KiB; }
+  auto mode() const -> n3 { return io.mode; }
+  auto memory() const -> u32 { return io.mode.bit(2) == 0 ? 16_KiB : 64_KiB; }
 
   //mode:
   //xx0 => planar tiledata
@@ -73,43 +74,42 @@ struct System : IO {
   //11x => 4bpp, color
 
   //system.cpp
+  auto game() -> string;
   auto run() -> void;
 
-  auto load(Node::Object&) -> void;
+  auto load(Node::System& node, string name) -> bool;
   auto unload() -> void;
   auto save() -> void;
-  auto power() -> void;
+  auto power(bool reset = false) -> void;
 
   //io.cpp
-  auto portRead(uint16 address) -> uint8 override;
-  auto portWrite(uint16 address, uint8 data) -> void override;
+  auto portRead(n16 address) -> n8 override;
+  auto portWrite(n16 address, n8 data) -> void override;
 
   //serialization.cpp
   auto serialize(bool synchronize) -> serializer;
   auto unserialize(serializer&) -> bool;
 
   struct Information {
+    string name = "WonderSwan";
     SoC soc = SoC::ASWAN;
     Model model = Model::WonderSwan;
-    uint32 serializeSize[2];
   } information;
 
-  Memory::Readable<uint8> bootROM;
+  Memory::Readable<n8> bootROM;
   EEPROM eeprom;
 
 private:
   struct Registers {
     //$0060  DISP_MODE
-    uint1 unknown0;
-    uint1 unknown1;
-    uint1 unknown3;
-    uint3 mode;
+    n1 unknown0;
+    n1 unknown1;
+    n1 unknown3;
+    n3 mode;
   } io;
 
   //serialization.cpp
-  auto serialize(serializer&) -> void;
-  auto serializeAll(serializer&, bool synchronize) -> void;
-  auto serializeInit(bool synchronize) -> uint;
+  auto serialize(serializer&, bool synchronize) -> void;
 };
 
 extern System system;

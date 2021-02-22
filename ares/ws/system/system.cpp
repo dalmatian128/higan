@@ -2,6 +2,20 @@
 
 namespace ares::WonderSwan {
 
+auto enumerate() -> vector<string> {
+  return {
+    "[Bandai] WonderSwan",
+    "[Bandai] WonderSwan Color",
+    "[Bandai] SwanCrystal",
+    "[Benesse] Pocket Challenge V2",
+  };
+}
+
+auto load(Node::System& node, string name) -> bool {
+  if(!enumerate().find(name)) return false;
+  return system.load(node, name);
+}
+
 Scheduler scheduler;
 System system;
 #define Model ares::WonderSwan::Model
@@ -12,26 +26,55 @@ System system;
 #include "io.cpp"
 #include "serialization.cpp"
 
+auto System::game() -> string {
+  if(cartridge.node) {
+    return cartridge.name();
+  }
+
+  return "(no cartridge connected)";
+}
+
 auto System::run() -> void {
-  auto event = scheduler.enter();
-  if(event == Event::Frame) ppu.refresh();
+  scheduler.enter();
   controls.poll();
 }
 
-auto System::load(Node::Object& root) -> void {
+auto System::load(Node::System& root, string name) -> bool {
   if(node) unload();
 
   information = {};
+  if(name.find("WonderSwan")) {
+    information.name = "WonderSwan";
+    information.soc = SoC::ASWAN;
+    information.model = Model::WonderSwan;
+  }
+  if(name.find("WonderSwan Color")) {
+    information.name = "WonderSwan Color";
+    information.soc = SoC::SPHINX;
+    information.model = Model::WonderSwanColor;
+  }
+  if(name.find("SwanCrystal")) {
+    information.name = "SwanCrystal";
+    information.soc = SoC::SPHINX2;
+    information.model = Model::SwanCrystal;
+  }
+  if(name.find("Pocket Challenge V2")) {
+    information.name = "Pocket Challenge V2";
+    information.soc = SoC::ASWAN;
+    information.model = Model::PocketChallengeV2;
+  }
 
-  if(interface->name() == "WonderSwan"         ) information.soc = SoC::ASWAN,   information.model = Model::WonderSwan;
-  if(interface->name() == "WonderSwan Color"   ) information.soc = SoC::SPHINX,  information.model = Model::WonderSwanColor;
-  if(interface->name() == "SwanCrystal"        ) information.soc = SoC::SPHINX2, information.model = Model::SwanCrystal;
-  if(interface->name() == "Pocket Challenge V2") information.soc = SoC::ASWAN,   information.model = Model::PocketChallengeV2;
-
-  node = Node::System::create(interface->name());
+  node = Node::System::create(information.name);
+  node->setGame({&System::game, this});
+  node->setRun({&System::run, this});
+  node->setPower({&System::power, this});
+  node->setSave({&System::save, this});
+  node->setUnload({&System::unload, this});
+  node->setSerialize({&System::serialize, this});
+  node->setUnserialize({&System::unserialize, this});
   root = node;
 
-  headphones = node->append<Node::Boolean>("Headphones", true, [&](auto value) {
+  headphones = node->append<Node::Setting::Boolean>("Headphones", true, [&](auto value) {
     apu.r.headphonesConnected = value;
     ppu.updateIcons();
   });
@@ -43,7 +86,7 @@ auto System::load(Node::Object& root) -> void {
   //none of this can be considered 100% verified; direct EEPROM dumps from new-old stock would be required.
   auto initializeName = [&](string name) {
     //16-character limit, 'A'-'Z' only!
-    for(uint index : range(name.size())) {
+    for(u32 index : range(name.size())) {
       eeprom.program(0x60 + index, name[index] - 'A' + 0x0b);
     }
   };
@@ -53,7 +96,7 @@ auto System::load(Node::Object& root) -> void {
       bootROM.allocate(4_KiB);
       bootROM.load(fp);
     }
-    eeprom.allocate(128, 16, 0x00);
+    eeprom.allocate(128, 16, 1, 0x00);
     eeprom.program(0x76, 0x01);
     eeprom.program(0x77, 0x00);
     eeprom.program(0x78, 0x24);
@@ -66,7 +109,7 @@ auto System::load(Node::Object& root) -> void {
       bootROM.allocate(8_KiB);
       bootROM.load(fp);
     }
-    eeprom.allocate(2048, 16, 0x00);
+    eeprom.allocate(2048, 16, 1, 0x00);
     eeprom.program(0x76, 0x01);
     eeprom.program(0x77, 0x01);
     eeprom.program(0x78, 0x27);
@@ -83,7 +126,7 @@ auto System::load(Node::Object& root) -> void {
       bootROM.allocate(8_KiB);
       bootROM.load(fp);
     }
-    eeprom.allocate(2048, 16, 0x00);
+    eeprom.allocate(2048, 16, 1, 0x00);
     //unverified; based on WonderSwan Color IPLROM
     eeprom.program(0x76, 0x01);
     eeprom.program(0x77, 0x01);
@@ -111,7 +154,7 @@ auto System::load(Node::Object& root) -> void {
   }
 
   if(auto fp = platform->open(node, "save.eeprom", File::Read)) {
-    fp->read(eeprom.data, eeprom.size);
+    fp->read({eeprom.data, eeprom.size});
   }
 
   scheduler.reset();
@@ -120,13 +163,14 @@ auto System::load(Node::Object& root) -> void {
   ppu.load(node);
   apu.load(node);
   cartridgeSlot.load(node);
+  return true;
 }
 
 auto System::save() -> void {
   if(!node) return;
 
   if(auto fp = platform->open(node, "save.eeprom", File::Write)) {
-    fp->write(eeprom.data, eeprom.size);
+    fp->write({eeprom.data, eeprom.size});
   }
 
   cartridge.save();
@@ -146,8 +190,8 @@ auto System::unload() -> void {
   headphones = {};
 }
 
-auto System::power() -> void {
-  for(auto& setting : node->find<Node::Setting>()) setting->setLatch();
+auto System::power(bool reset) -> void {
+  for(auto& setting : node->find<Node::Setting::Setting>()) setting->setLatch();
 
   bus.power();
   iram.power();
@@ -157,9 +201,6 @@ auto System::power() -> void {
   apu.power();
   cartridge.power();
   scheduler.power(cpu);
-
-  information.serializeSize[0] = serializeInit(0);
-  information.serializeSize[1] = serializeInit(1);
 
   bus.map(this, 0x0060);
   bus.map(this, 0x00ba, 0x00be);

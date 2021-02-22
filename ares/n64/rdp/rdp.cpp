@@ -9,27 +9,47 @@ RDP rdp;
 #include "serialization.cpp"
 
 auto RDP::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("RDP");
+  node = parent->append<Node::Object>("RDP");
   debugger.load(node);
 }
 
 auto RDP::unload() -> void {
-  node = {};
   debugger = {};
+  node.reset();
 }
 
 auto RDP::main() -> void {
   step(93'750'000);
 }
 
-auto RDP::step(uint clocks) -> void {
+auto RDP::step(u32 clocks) -> void {
   clock += clocks;
 }
 
-auto RDP::power() -> void {
+auto RDP::power(bool reset) -> void {
   Thread::reset();
   command = {};
+  edge = {};
+  shade = {};
+  texture = {};
+  zbuffer = {};
+  rectangle = {};
+  other = {};
+  fog = {};
+  blend = {};
+  primitive = {};
+  environment = {};
+  combine = {};
+  tlut = {};
+  load_ = {};
+  tileSize = {};
+  tile = {};
   set = {};
+  primitiveDepth = {};
+  scissor = {};
+  convert = {};
+  key = {};
+  fillRectangle_ = {};
   io.bist = {};
   io.test = {};
 }

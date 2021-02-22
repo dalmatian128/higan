@@ -7,7 +7,7 @@ Cartridge& cartridge = cartridgeSlot.cartridge;
 #include "serialization.cpp"
 
 auto Cartridge::allocate(Node::Port parent) -> Node::Peripheral {
-  return node = parent->append<Node::Peripheral>(interface->name());
+  return node = parent->append<Node::Peripheral>(system.name());
 }
 
 auto Cartridge::connect() -> void {
@@ -20,8 +20,8 @@ auto Cartridge::connect() -> void {
   }
 
   auto document = BML::unserialize(information.manifest);
-  information.name = document["game/label"].text();
-  information.region = document["game/region"].text();
+  information.name = document["game/label"].string();
+  information.region = document["game/region"].string();
 
   if(auto memory = document["game/board/memory(type=ROM,content=Program)"]) {
     rom.allocate(memory["size"].natural());
@@ -64,7 +64,7 @@ auto Cartridge::save() -> void {
 auto Cartridge::power() -> void {
 }
 
-auto Cartridge::read(uint16 address) -> maybe<uint8> {
+auto Cartridge::read(n16 address) -> maybe<n8> {
   if(!node) return nothing;
 
   if(address >= 0x0000 && address <= 0x7fff) {
@@ -78,7 +78,7 @@ auto Cartridge::read(uint16 address) -> maybe<uint8> {
   return nothing;
 }
 
-auto Cartridge::write(uint16 address, uint8 data) -> bool {
+auto Cartridge::write(n16 address, n8 data) -> bool {
   if(!node) return false;
 
   if(address >= 0x0000 && address <= 0x7fff) {

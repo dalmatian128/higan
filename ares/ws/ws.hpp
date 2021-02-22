@@ -8,8 +8,10 @@
 
 namespace ares::WonderSwan {
   #include <ares/inline.hpp>
+  auto enumerate() -> vector<string>;
+  auto load(Node::System& node, string name) -> bool;
 
-  enum : uint { Byte = 1, Word = 2, Long = 4 };
+  enum : u32 { Byte = 1, Word = 2, Long = 4 };
 
   struct SoC {
     inline static auto ASWAN() -> bool;    //Grayscale
@@ -32,5 +34,3 @@ namespace ares::WonderSwan {
   #include <ws/ppu/ppu.hpp>
   #include <ws/apu/apu.hpp>
 }
-
-#include <ws/interface/interface.hpp>

@@ -1,13 +1,14 @@
 auto PCD::ADPCM::load(Node::Object parent) -> void {
-  stream = parent->append<Node::Stream>("ADPCM");
+  stream = parent->append<Node::Audio::Stream>("ADPCM");
   stream->setChannels(1);
   stream->setFrequency(32000);
 
   memory.allocate(64_KiB);
 }
 
-auto PCD::ADPCM::unload() -> void {
-  stream = {};
+auto PCD::ADPCM::unload(Node::Object parent) -> void {
+  parent->remove(stream);
+  stream.reset();
 
   memory.reset();
 }
@@ -42,7 +43,7 @@ auto PCD::ADPCM::clock() -> void {
 }
 
 auto PCD::ADPCM::clockSample() -> void {
-  stream->sample((io.playing ? msm5205.sample() : (int12)0) * fader->adpcm() / 2048.0);
+  stream->frame((io.playing ? msm5205.sample() : (i12)0) * fader->adpcm() / 2048.0);
 
   if(++period < divider) return;
   period = 0;
@@ -65,7 +66,7 @@ auto PCD::ADPCM::clockSample() -> void {
   }
 }
 
-auto PCD::ADPCM::control(uint8 data) -> void {
+auto PCD::ADPCM::control(n8 data) -> void {
   io.writeOffset = data.bit(0);
   if(!io.writeLatch && data.bit(1)) {
     write.address = latch - !io.writeOffset;

@@ -7,8 +7,10 @@
 
 namespace ares::GameBoyAdvance {
   #include <ares/inline.hpp>
+  auto enumerate() -> vector<string>;
+  auto load(Node::System& node, string name) -> bool;
 
-  enum : uint {           //mode flags for bus read, write:
+  enum : u32 {           //mode flags for bus read, write:
     Nonsequential =   1,  //N cycle
     Sequential    =   2,  //S cycle
     Prefetch      =   4,  //instruction fetch (eligible for prefetch)
@@ -33,5 +35,3 @@ namespace ares::GameBoyAdvance {
   #include <gba/ppu/ppu.hpp>
   #include <gba/apu/apu.hpp>
 }
-
-#include <gba/interface/interface.hpp>

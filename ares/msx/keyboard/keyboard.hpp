@@ -11,17 +11,17 @@ struct Keyboard {
   auto disconnect() -> void;
 
   auto power() -> void;
-  auto read() -> uint8;
-  auto write(uint4 data) -> void;
+  auto read() -> n8;
+  auto write(n4 data) -> void;
 
   //serialization.cpp
   auto serialize(serializer&) -> void;
 
 private:
-  Node::Button matrix[12][8];
+  Node::Input::Button matrix[12][8];
 
   struct IO {
-    uint4 select;
+    n4 select;
   } io;
 };
 

@@ -1,7 +1,7 @@
 //MIPS Interface
 
 struct MI : Memory::IO<MI> {
-  Node::Component node;
+  Node::Object node;
 
   struct Debugger {
     //debugger.cpp
@@ -10,8 +10,8 @@ struct MI : Memory::IO<MI> {
     auto io(string_view) -> void;
 
     struct Tracer {
-      Node::Notification interrupt;
-      Node::Notification io;
+      Node::Debugger::Tracer::Notification interrupt;
+      Node::Debugger::Tracer::Notification io;
     } tracer;
   } debugger;
 
@@ -19,12 +19,12 @@ struct MI : Memory::IO<MI> {
   auto load(Node::Object) -> void;
   auto unload() -> void;
 
-  enum class IRQ : uint { SP, SI, AI, VI, PI, DP };
+  enum class IRQ : u32 { SP, SI, AI, VI, PI, DP };
   auto raise(IRQ) -> void;
   auto lower(IRQ) -> void;
   auto poll() -> void;
 
-  auto power() -> void;
+  auto power(bool reset) -> void;
 
   //io.cpp
   auto readWord(u32 address) -> u32;
@@ -35,8 +35,8 @@ struct MI : Memory::IO<MI> {
 
 private:
   struct Interrupt {
-    bool line;
-    bool mask;
+    b1 line = 1;
+    b1 mask;
   };
 
   struct IRQs {
@@ -47,9 +47,6 @@ private:
     Interrupt pi;
     Interrupt dp;
   } irq;
-
-  struct IO {
-  } io;
 
   struct Revision {
     static constexpr u8 io  = 0x02;  //I/O interface

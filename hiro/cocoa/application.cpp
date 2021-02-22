@@ -22,7 +22,7 @@
 
 -(void) updateInDock:(NSTimer*)timer {
   NSArray* windows = [NSApp windows];
-  for(uint n = 0; n < [windows count]; n++) {
+  for(u32 n = 0; n < [windows count]; n++) {
     NSWindow* window = [windows objectAtIndex:n];
     if([window isMiniaturized]) {
       [window updateInDock];
@@ -92,7 +92,25 @@ auto pApplication::quit() -> void {
 }
 
 auto pApplication::setScreenSaver(bool screenSaver) -> void {
-  //TODO: not implemented
+  static IOPMAssertionID powerAssertion = kIOPMNullAssertionID;  //default is enabled
+
+  //do nothing if state has not been changed
+  if(screenSaver == (powerAssertion == kIOPMNullAssertionID)) return;
+
+  @autoreleasepool {
+    if(screenSaver) {
+      IOPMAssertionRelease(powerAssertion);
+      powerAssertion = kIOPMNullAssertionID;
+    } else {
+      string reason = {Application::state().name, " screensaver suppression"};
+      NSString* assertionName = [NSString stringWithUTF8String:reason.data()];
+      if(IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleDisplaySleep,
+        kIOPMAssertionLevelOn, (CFStringRef)assertionName, &powerAssertion
+      ) != kIOReturnSuccess) {
+        powerAssertion = kIOPMNullAssertionID;
+      }
+    }
+  }
 }
 
 auto pApplication::initialize() -> void {

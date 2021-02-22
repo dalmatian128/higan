@@ -21,63 +21,59 @@ PPU ppu;
 #include "counter/serialization.cpp"
 
 auto PPU::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("PPU");
+  node = parent->append<Node::Object>("PPU");
 
-  versionPPU1 = node->append<Node::Natural>("PPU1 Version", 1);
+  versionPPU1 = node->append<Node::Setting::Natural>("PPU1 Version", 1);
   versionPPU1->setAllowedValues({1});
 
-  versionPPU2 = node->append<Node::Natural>("PPU2 Version", 3);
+  versionPPU2 = node->append<Node::Setting::Natural>("PPU2 Version", 3);
   versionPPU2->setAllowedValues({1, 2, 3});
 
-  vramSize = node->append<Node::Natural>("VRAM", 64_KiB);
+  vramSize = node->append<Node::Setting::Natural>("VRAM", 64_KiB);
   vramSize->setAllowedValues({64_KiB, 128_KiB});
 
-  screen = node->append<Node::Screen>("Screen");
+  screen = node->append<Node::Video::Screen>("Screen", 512, 480);
   screen->colors(1 << 19, {&PPU::color, this});
   screen->setSize(512, 480);
   screen->setScale(0.5, 0.5);
   screen->setAspect(8.0, 7.0);
 
-  overscanEnable = screen->append<Node::Boolean>("Overscan", true, [&](auto value) {
+  overscanEnable = screen->append<Node::Setting::Boolean>("Overscan", true, [&](auto value) {
     if(value == 0) screen->setSize(512, 448);
     if(value == 1) screen->setSize(512, 480);
   });
   overscanEnable->setDynamic(true);
 
-  colorEmulation = screen->append<Node::Boolean>("Color Emulation", true, [&](auto value) {
+  colorEmulation = screen->append<Node::Setting::Boolean>("Color Emulation", true, [&](auto value) {
     screen->resetPalette();
   });
   colorEmulation->setDynamic(true);
 
-  colorBleed = screen->append<Node::Boolean>("Color Bleed", true, [&](auto value) {
+  colorBleed = screen->append<Node::Setting::Boolean>("Color Bleed", true, [&](auto value) {
     screen->setColorBleed(value);
   });
   colorBleed->setDynamic(true);
 
   debugger.load(node);
-
-  output = new uint32[512 * 512];
-  output += 16 * 512;  //overscan offset
 }
 
 auto PPU::unload() -> void {
-  node = {};
-  versionPPU1 = {};
-  versionPPU2 = {};
-  vramSize = {};
-  screen = {};
-  overscanEnable = {};
-  colorEmulation = {};
-  colorBleed = {};
   debugger = {};
-
-  output -= 16 * 512;
-  delete[] output;
+  overscanEnable.reset();
+  colorEmulation.reset();
+  colorBleed.reset();
+  screen->quit();
+  node->remove(screen);
+  screen.reset();
+  versionPPU1.reset();
+  versionPPU2.reset();
+  vramSize.reset();
+  node.reset();
 }
 
 auto PPU::map() -> void {
-  function<uint8 (uint24, uint8)> reader{&PPU::readIO, this};
-  function<void (uint24, uint8)> writer{&PPU::writeIO, this};
+  function<n8   (n24, n8)> reader{&PPU::readIO, this};
+  function<void (n24, n8)> writer{&PPU::writeIO, this};
   bus.map(reader, writer, "00-3f,80-bf:2100-213f");
 }
 
@@ -87,7 +83,7 @@ inline auto PPU::step() -> void {
   Thread::synchronize(cpu);
 }
 
-inline auto PPU::step(uint clocks) -> void {
+inline auto PPU::step(u32 clocks) -> void {
   clocks >>= 1;
   while(clocks--) {
     tick(2);
@@ -99,9 +95,9 @@ inline auto PPU::step(uint clocks) -> void {
 auto PPU::power(bool reset) -> void {
   Thread::create(system.cpuFrequency(), {&PPU::main, this});
   PPUcounter::reset();
-  memory::fill<uint32>(output, 512 * 480);
+  screen->power();
 
-  if(!reset) random.array((uint8*)vram.data, sizeof(vram.data));
+  if(!reset) random.array({vram.data, sizeof(vram.data)});
 
   ppu1.version = versionPPU1->value();
   ppu1.mdr = random.bias(0xff);
@@ -109,7 +105,7 @@ auto PPU::power(bool reset) -> void {
   ppu2.version = versionPPU2->value();
   ppu2.mdr = random.bias(0xff);
 
-  vram.mask = vramSize->value() / sizeof(uint16) - 1;
+  vram.mask = vramSize->value() / sizeof(n16) - 1;
   if(vram.mask != 0xffff) vram.mask = 0x7fff;
 
   latch.vram = random();
@@ -203,21 +199,6 @@ auto PPU::power(bool reset) -> void {
   dac.power();
 
   updateVideoMode();
-}
-
-auto PPU::refresh() -> void {
-  auto data = output;
-
-  if(overscanEnable->value() == 0) {
-    data += 2 * 512;
-    if(overscan()) data += 16 * 512;
-    screen->refresh(data, 512 * sizeof(uint32), 512, 448);
-  }
-
-  if(overscanEnable->value() == 1) {
-    if(!overscan()) data -= 14 * 512;
-    screen->refresh(data, 512 * sizeof(uint32), 512, 480);
-  }
 }
 
 }

@@ -1,13 +1,13 @@
 struct PSG : SN76489, Thread {
-  Node::Component node;
-  Node::Stream stream;
+  Node::Object node;
+  Node::Audio::Stream stream;
 
   //psg.cpp
   auto load(Node::Object) -> void;
   auto unload() -> void;
 
   auto main() -> void;
-  auto step(uint clocks) -> void;
+  auto step(u32 clocks) -> void;
 
   auto power(bool reset) -> void;
 

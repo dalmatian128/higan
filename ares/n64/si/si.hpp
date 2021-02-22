@@ -1,7 +1,7 @@
 //Serial Interface
 
 struct SI : Memory::IO<SI> {
-  Node::Component node;
+  Node::Object node;
 
   struct Debugger {
     //debugger.cpp
@@ -9,15 +9,17 @@ struct SI : Memory::IO<SI> {
     auto io(string_view) -> void;
 
     struct Tracer {
-      Node::Notification io;
+      Node::Debugger::Tracer::Notification io;
     } tracer;
   } debugger;
 
   //si.cpp
   auto load(Node::Object) -> void;
   auto unload() -> void;
+  auto addressCRC(u16 address) const -> n5;
+  auto dataCRC(array_view<u8> data) const -> n8;
   auto main() -> void;
-  auto power() -> void;
+  auto power(bool reset) -> void;
 
   //io.cpp
   auto readWord(u32 address) -> u32;
@@ -27,19 +29,19 @@ struct SI : Memory::IO<SI> {
   auto serialize(serializer&) -> void;
 
   struct IO {
-    uint24 dramAddress = 0;
-    uint32 readAddress = 0;
-    uint32 writeAddress = 0;
-     uint1 dmaBusy = 0;
-     uint1 ioBusy = 0;
-     uint1 readPending = 0;
-     uint4 pchState = 0;
-     uint4 dmaState = 0;
-     uint1 dmaError = 0;
-     uint1 interrupt = 0;
+    n24 dramAddress;
+    n32 readAddress;
+    n32 writeAddress;
+    n1  dmaBusy;
+    n1  ioBusy;
+    n1  readPending;
+    n4  pchState;
+    n4  dmaState;
+    n1  dmaError;
+    n1  interrupt;
   } io;
 
-  u64 resetStrobe = 0;  //hack
+  u64 resetStrobe;  //hack
 };
 
 extern SI si;

@@ -10,7 +10,7 @@ Cartridge& cartridge = cartridgeSlot.cartridge;
 #include "serialization.cpp"
 
 auto Cartridge::allocate(Node::Port parent) -> Node::Peripheral {
-  string name = interface->name();
+  string name = system.name();
   if(Model::SwanCrystal()) name = "WonderSwan Color";
   return node = parent->append<Node::Peripheral>(name);
 }
@@ -30,40 +30,40 @@ auto Cartridge::connect() -> void {
   if(auto memory = document["game/board/memory(type=ROM,content=Program)"]) {
     rom.size = memory["size"].natural();
     rom.mask = bit::round(rom.size) - 1;
-    rom.data = new uint8[rom.mask + 1];
-    memory::fill<uint8>(rom.data, rom.mask + 1, 0xff);
+    rom.data = new n8[rom.mask + 1];
+    memory::fill<u8>(rom.data, rom.mask + 1, 0xff);
     if(auto fp = platform->open(node, "program.rom", File::Read, File::Required)) {
-      fp->read(rom.data, rom.size);
+      fp->read({rom.data, rom.size});
     }
   }
 
   if(auto memory = document["game/board/memory(type=RAM,content=Save)"]) {
     ram.size = memory["size"].natural();
     ram.mask = bit::round(ram.size) - 1;
-    ram.data = new uint8[ram.mask + 1];
-    memory::fill<uint8>(ram.data, ram.mask + 1, 0xff);
+    ram.data = new n8[ram.mask + 1];
+    memory::fill<u8>(ram.data, ram.mask + 1, 0xff);
     if(!memory["volatile"]) {
       if(auto fp = platform->open(node, "save.ram", File::Read)) {
-        fp->read(ram.data, ram.size);
+        fp->read({ram.data, ram.size});
       }
     }
   }
 
   if(auto memory = document["game/board/memory(type=EEPROM,content=Save)"]) {
-    eeprom.allocate(memory["size"].natural(), 16);
+    eeprom.allocate(memory["size"].natural(), 16, 1, 0xff);
     if(auto fp = platform->open(node, "save.eeprom", File::Read)) {
-      fp->read(eeprom.data, eeprom.size);
+      fp->read({eeprom.data, eeprom.size});
     }
   }
 
   if(auto memory = document["game/board/memory(type=RTC,content=Time)"]) {
     rtc.size = memory["size"].natural();
     rtc.mask = bit::round(rtc.size) - 1;
-    rtc.data = new uint8[rtc.mask + 1];
-    memory::fill<uint8>(rtc.data, rtc.mask + 1, 0x00);
+    rtc.data = new n8[rtc.mask + 1];
+    memory::fill<u8>(rtc.data, rtc.mask + 1, 0x00);
     if(!memory["volatile"]) {
       if(auto fp = platform->open(node, "time.rtc", File::Read)) {
-        fp->read(rtc.data, rtc.size);
+        fp->read({rtc.data, rtc.size});
       }
     }
   }
@@ -102,21 +102,21 @@ auto Cartridge::save() -> void {
   if(auto memory = document["game/board/memory(type=RAM,content=Save)"]) {
     if(!memory["volatile"]) {
       if(auto fp = platform->open(node, "save.ram", File::Write)) {
-        fp->write(ram.data, ram.size);
+        fp->write({ram.data, ram.size});
       }
     }
   }
 
   if(auto memory = document["game/board/memory(type=EEPROM,content=Save)"]) {
     if(auto fp = platform->open(node, "save.eeprom", File::Write)) {
-      fp->write(eeprom.data, eeprom.size);
+      fp->write({eeprom.data, eeprom.size});
     }
   }
 
   if(auto memory = document["game/board/memory(type=RTC,content=Time)"]) {
     if(!memory["volatile"]) {
       if(auto fp = platform->open(node, "time.rtc", File::Write)) {
-        fp->write(rtc.data, rtc.size);
+        fp->write({rtc.data, rtc.size});
       }
     }
   }
@@ -130,7 +130,7 @@ auto Cartridge::main() -> void {
   step(3'072'000);
 }
 
-auto Cartridge::step(uint clocks) -> void {
+auto Cartridge::step(u32 clocks) -> void {
   Thread::step(clocks);
   synchronize(cpu);
 }

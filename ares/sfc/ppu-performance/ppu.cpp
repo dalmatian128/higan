@@ -17,42 +17,39 @@ PPU ppu;
 #include "../ppu/counter/serialization.cpp"
 
 auto PPU::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("PPU");
+  node = parent->append<Node::Object>("PPU");
 
-  screen = node->append<Node::Screen>("Screen");
+  screen = node->append<Node::Video::Screen>("Screen", 512, 480);
   screen->colors(1 << 19, {&PPU::color, this});
   screen->setSize(512, 480);
   screen->setScale(0.5, 0.5);
   screen->setAspect(8.0, 7.0);
 
-  overscanEnable = screen->append<Node::Boolean>("Overscan", true, [&](auto value) {
+  overscanEnable = screen->append<Node::Setting::Boolean>("Overscan", true, [&](auto value) {
     if(value == 0) screen->setSize(512, 448);
     if(value == 1) screen->setSize(512, 480);
   });
   overscanEnable->setDynamic(true);
 
-  colorEmulation = screen->append<Node::Boolean>("Color Emulation", true, [&](auto value) {
+  colorEmulation = screen->append<Node::Setting::Boolean>("Color Emulation", true, [&](auto value) {
     screen->resetPalette();
   });
   colorEmulation->setDynamic(true);
 
   debugger.load(node);
-
-  output = new uint32[512 * 512];
-  output += 16 * 512;  //overscan offset
 }
 
 auto PPU::unload() -> void {
-  node = {};
-  screen = {};
-  colorEmulation = {};
   debugger = {};
-
-  output -= 16 * 512;
-  delete[] output;
+  overscanEnable.reset();
+  colorEmulation.reset();
+  screen->quit();
+  node->remove(screen);
+  screen.reset();
+  node.reset();
 }
 
-auto PPU::step(uint clocks) -> void {
+auto PPU::step(u32 clocks) -> void {
   tick(clocks);
   Thread::step(clocks);
   Thread::synchronize(cpu);
@@ -69,7 +66,7 @@ auto PPU::main() -> void {
   }
 
   if(vcounter() && vcounter() < vdisp() && !runAhead()) {
-    uint width = hires() ? 512 : 256;
+    u32 width = hires() ? 512 : 256;
     if(width == 256) width256 = 1;
     if(width == 512) width512 = 1;
     widths[vcounter()] = width;
@@ -92,6 +89,12 @@ auto PPU::main() -> void {
   }
 
   if(vcounter() == 240) {
+    normalize();
+    if(state.interlace == 0) screen->setProgressive(1);
+    if(state.interlace == 1) screen->setInterlace(field());
+    if(overscanEnable->value() == 0) screen->setViewport(0, 18, 256 << width512, 448);
+    if(overscanEnable->value() == 1) screen->setViewport(0,  0, 256 << width512, 480);
+    screen->frame();
     scheduler.exit(Event::Frame);
   }
 
@@ -99,16 +102,15 @@ auto PPU::main() -> void {
 }
 
 auto PPU::map() -> void {
-  function<uint8 (uint24, uint8)> reader{&PPU::readIO, this};
-  function<void (uint24, uint8)> writer{&PPU::writeIO, this};
+  function<n8   (n24, n8)> reader{&PPU::readIO, this};
+  function<void (n24, n8)> writer{&PPU::writeIO, this};
   bus.map(reader, writer, "00-3f,80-bf:2100-213f");
 }
 
 auto PPU::power(bool reset) -> void {
   Thread::create(system.cpuFrequency(), {&PPU::main, this});
   PPUcounter::reset();
-
-  memory::fill<uint32>(output, 512 * 480);
+  screen->power();
 
   ppu1.version = 1, ppu1.mdr = 0x00;
   ppu2.version = 3, ppu2.mdr = 0x00;
@@ -131,7 +133,7 @@ auto PPU::power(bool reset) -> void {
   updateVideoMode();
 
   string title;
-  for(uint index : range(21)) {
+  for(u32 index : range(21)) {
     char byte = bus.read(0xffc0 + index, 0x00);
     if(byte == 0x00) break;
     if(byte == 0xff) break;
@@ -147,38 +149,21 @@ auto PPU::power(bool reset) -> void {
   if(title == "Suguro Quest++") renderingCycle = 128;
 }
 
-auto PPU::refresh() -> void {
-  //this frame contains mixed resolutions: normalize every scanline to 512-width
+auto PPU::normalize() -> void {
   if(width256 && width512) {
-    for(uint y : range(1, 240)) {
-      auto line = output + 1024 * y + (interlace() && field() ? 512 : 0);
+    //this frame contains mixed resolutions: normalize every scanline to 512-width
+    for(u32 y : range(1, 240)) {
+      auto line = screen->pixels().data() + 1024 * y + (interlace() && field() ? 512 : 0);
       if(widths[y] == 256) {
         auto source = &line[256];
         auto target = &line[512];
-        for(uint x : range(256)) {
+        for(u32 x : range(256)) {
           auto color = *--source;
           *--target = color;
           *--target = color;
         }
       }
     }
-  }
-
-  auto data  = output;
-  uint width = width512 ? 512 : 256;
-  uint pitch = state.interlace ? 512 : 1024;
-
-  if(overscanEnable->value() == 0) {
-    data += 2 * 512;
-    if(overscan()) data += 16 * 512;
-    uint height = 224 << state.interlace;
-    screen->refresh(data, pitch * sizeof(uint32), width, height);
-  }
-
-  if(overscanEnable->value() == 1) {
-    if(!overscan()) data -= 14 * 512;
-    uint height = 240 << state.interlace;
-    screen->refresh(data, pitch * sizeof(uint32), width, height);
   }
 }
 

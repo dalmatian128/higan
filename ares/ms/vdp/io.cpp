@@ -1,17 +1,36 @@
-auto VDP::vcounter() -> uint8 {
-  switch(io.mode) {
-  default:     return io.vcounter <= 218 ? io.vcounter : io.vcounter - 6;  //256x192
-  case 0b1011: return io.vcounter <= 234 ? io.vcounter : io.vcounter - 6;  //256x224
-  case 0b1110: return io.vcounter;  //256x240
+auto VDP::vcounter() -> n8 {
+  if(Region::NTSCJ() || Region::NTSCU()) {
+    switch(io.mode) {
+    default:     return io.vcounter <= 218 ? io.vcounter : io.vcounter - 6;  //256x192
+    case 0b1011: return io.vcounter <= 234 ? io.vcounter : io.vcounter - 6;  //256x224
+    case 0b1110: return io.vcounter;  //256x240
+    }
   }
+
+  if(Region::PAL()) {
+    switch(io.mode) {
+    default:     return io.vcounter <= 242 ? io.vcounter : io.vcounter - 57;  //256x192
+    case 0b1011: return io.vcounter <= 258 ? io.vcounter : io.vcounter - 57;  //256x224
+    case 0b1110: return io.vcounter <= 266 ? io.vcounter : io.vcounter - 56;  //256x240
+    }
+  }
+
+  unreachable;
 }
 
-auto VDP::hcounter() -> uint8 {
-  uint hcounter = io.hcounter >> 1;
-  return hcounter <= 233 ? hcounter : hcounter - 86;
+auto VDP::hcounter() -> n8 {
+  return (io.pcounter - 94) >> 2;
 }
 
-auto VDP::data() -> uint8 {
+auto VDP::hcounterLatch() -> void {
+  io.pcounter = io.hcounter;
+}
+
+auto VDP::ccounter() -> n12 {
+  return io.ccounter;
+}
+
+auto VDP::data() -> n8 {
   io.controlLatch = 0;
 
   auto data = io.vramLatch;
@@ -19,14 +38,14 @@ auto VDP::data() -> uint8 {
   return data;
 }
 
-auto VDP::status() -> uint8 {
+auto VDP::status() -> n8 {
   io.controlLatch = 0;
 
-  uint8 result = 0x00;
-  result |= io.intFrame << 7;
-  result |= io.spriteOverflow << 6;
-  result |= io.spriteCollision << 5;
-  result |= io.fifthSprite << 0;
+  n8 result;
+  result.bit(0,4) = io.fifthSprite;
+  result.bit(5)   = io.spriteCollision;
+  result.bit(6)   = io.spriteOverflow;
+  result.bit(7)   = io.intFrame;
 
   io.intLine = 0;
   io.intFrame = 0;
@@ -37,19 +56,18 @@ auto VDP::status() -> uint8 {
   return result;
 }
 
-auto VDP::data(uint8 data) -> void {
+auto VDP::data(n8 data) -> void {
   io.controlLatch = 0;
 
   if(io.code <= 2) {
     vram[io.address++] = data;
   } else {
-    uint mask = 0;
     if(Model::MasterSystem()) cram[io.address++ & 0x1f] = data;
     if(Model::GameGear())     cram[io.address++ & 0x3f] = data;
   }
 }
 
-auto VDP::control(uint8 data) -> void {
+auto VDP::control(n8 data) -> void {
   if(io.controlLatch == 0) {
     io.controlLatch = 1;
     io.address.bit(0,7) = data.bit(0,7);
@@ -69,7 +87,7 @@ auto VDP::control(uint8 data) -> void {
   }
 }
 
-auto VDP::registerWrite(uint4 addr, uint8 data) -> void {
+auto VDP::registerWrite(n4 addr, n8 data) -> void {
   switch(addr) {
 
   //mode control 1

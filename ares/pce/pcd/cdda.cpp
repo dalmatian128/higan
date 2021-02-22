@@ -1,11 +1,12 @@
 auto PCD::CDDA::load(Node::Object parent) -> void {
-  stream = parent->append<Node::Stream>("CD-DA");
+  stream = parent->append<Node::Audio::Stream>("CD-DA");
   stream->setChannels(2);
   stream->setFrequency(44100);
 }
 
-auto PCD::CDDA::unload() -> void {
-  stream = {};
+auto PCD::CDDA::unload(Node::Object parent) -> void {
+  parent->remove(stream);
+  stream.reset();
 }
 
 auto PCD::CDDA::clockSector() -> void {
@@ -41,7 +42,7 @@ auto PCD::CDDA::clockSample() -> void {
     sample.right |= drive->sector[sample.offset++] << 8;
   }
 
-  stream->sample(
+  stream->frame(
     sample.left  * fader->cdda() / 32768.0,
     sample.right * fader->cdda() / 32768.0
   );

@@ -1,7 +1,7 @@
 struct ArcadeCardDuo : Interface {
   using Interface::Interface;
-  Memory::Readable<uint8> rom;
-  Memory::Writable<uint8> dram;
+  Memory::Readable<n8> rom;
+  Memory::Writable<n8> dram;
 
   struct Debugger {
     maybe<ArcadeCardDuo&> super;
@@ -11,7 +11,7 @@ struct ArcadeCardDuo : Interface {
     auto unload(Node::Object) -> void;
 
     struct Memory {
-      Node::Memory dram;
+      Node::Debugger::Memory dram;
     } memory;
   } debugger;
 
@@ -31,7 +31,7 @@ struct ArcadeCardDuo : Interface {
     debugger.unload(cartridge.node);
   }
 
-  auto read(uint8 bank, uint13 address, uint8 data) -> uint8 override {
+  auto read(n8 bank, n13 address, n8 data) -> n8 override {
     if(bank >= 0x00 && bank <= 0x3f) {
       return rom.read(bank << 13 | address);
     }
@@ -72,7 +72,7 @@ struct ArcadeCardDuo : Interface {
     return data;
   }
 
-  auto write(uint8 bank, uint13 address, uint8 data) -> void override {
+  auto write(n8 bank, n13 address, n8 data) -> void override {
     if(bank >= 0x40 && bank <= 0x43) {
       auto& page = pages[bank - 0x40];
       return dram.write(page.address(), data);
@@ -125,24 +125,24 @@ struct ArcadeCardDuo : Interface {
     alu = {};
   }
 
-  auto serialize(serializer& s) -> void {
-    dram.serialize(s);
+  auto serialize(serializer& s) -> void override {
+    s(dram);
 
     for(auto& page : pages) {
-      s.integer(page.control);
-      s.integer(page.base);
-      s.integer(page.offset);
-      s.integer(page.adjust);
+      s(page.control);
+      s(page.base);
+      s(page.offset);
+      s(page.adjust);
     }
 
-    s.integer(alu.value);
-    s.integer(alu.shift);
-    s.integer(alu.rotate);
+    s(alu.value);
+    s(alu.shift);
+    s(alu.rotate);
   }
 
   struct Page {
-    auto address() -> uint21 {
-      uint21 address = base;
+    auto address() -> n21 {
+      n21 address = base;
       if(control.bit(1) == 1) address += offset + 0xff0000 * control.bit(3);
       if(control.bit(0) == 1) increment();
       return address;
@@ -153,15 +153,15 @@ struct ArcadeCardDuo : Interface {
       if(control.bit(4) == 1) base += adjust;
     }
 
-     uint7 control;
-    uint24 base;
-    uint16 offset;
-    uint16 adjust;
+    n7  control;
+    n24 base;
+    n16 offset;
+    n16 adjust;
   } pages[4];
 
   struct ALU {
-    uint32 value;
-     uint4 shift;
-     uint4 rotate;
+    n32 value;
+    n4  shift;
+    n4  rotate;
   } alu;
 };

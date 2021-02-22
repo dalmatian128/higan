@@ -19,6 +19,11 @@ auto PPU::main() -> void {
   dac.scanline();
 
   if(vcounter() == 240) {
+    if(self.interlace == 0) screen->setProgressive(1);
+    if(self.interlace == 1) screen->setInterlace(field());
+    if(overscanEnable->value() == 0) screen->setViewport(0, 18, 512, 448);
+    if(overscanEnable->value() == 1) screen->setViewport(0,  0, 512, 480);
+    screen->frame();
     scheduler.exit(Event::Frame);
   }
 
@@ -73,7 +78,7 @@ auto PPU::cycleObjectEvaluate() -> void {
   obj.evaluate(hcounter() >> 3);
 }
 
-template<uint Cycle>
+template<u32 Cycle>
 auto PPU::cycleBackgroundFetch() -> void {
   switch(io.bgMode) {
   case 0:
@@ -179,7 +184,7 @@ auto PPU::cycleRenderPixel() -> void {
   dac.run();
 }
 
-template<uint Cycle>
+template<u32 Cycle>
 auto PPU::cycle() -> void {
   if constexpr(Cycle >=  0 && Cycle <= 1016 && (Cycle -  0) % 8 == 0) cycleObjectEvaluate();
   if constexpr(Cycle >=  0 && Cycle <= 1054 && (Cycle -  0) % 4 == 0) cycleBackgroundFetch<(Cycle - 0) / 4 & 7>();

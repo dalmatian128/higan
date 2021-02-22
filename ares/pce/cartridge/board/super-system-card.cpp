@@ -1,7 +1,7 @@
 struct SuperSystemCard : Interface {
   using Interface::Interface;
-  Memory::Readable<uint8> rom;
-  Memory::Writable<uint8> ram;
+  Memory::Readable<n8> rom;
+  Memory::Writable<n8> ram;
 
   struct Debugger {
     maybe<SuperSystemCard&> super;
@@ -11,7 +11,7 @@ struct SuperSystemCard : Interface {
     auto unload(Node::Object) -> void;
 
     struct Memory {
-      Node::Memory ram;
+      Node::Debugger::Memory ram;
     } memory;
   } debugger;
 
@@ -31,7 +31,7 @@ struct SuperSystemCard : Interface {
     debugger.load(cartridge.node);
   }
 
-  auto read(uint8 bank, uint13 address, uint8 data) -> uint8 override {
+  auto read(n8 bank, n13 address, n8 data) -> n8 override {
     if(bank >= 0x00 && bank <= 0x3f) {
       return rom.read(bank << 13 | address);
     }
@@ -52,7 +52,7 @@ struct SuperSystemCard : Interface {
     return data;
   }
 
-  auto write(uint8 bank, uint13 address, uint8 data) -> void override {
+  auto write(n8 bank, n13 address, n8 data) -> void override {
     if(bank >= 0x68 && bank <= 0x7f) {
       return ram.write(bank - 0x68 << 13 | address, data);
     }
@@ -61,7 +61,7 @@ struct SuperSystemCard : Interface {
   auto power() -> void override {
   }
 
-  auto serialize(serializer& s) -> void {
-    ram.serialize(s);
+  auto serialize(serializer& s) -> void override {
+    s(ram);
   }
 };

@@ -5,7 +5,7 @@ auto Program::identify(const string& filename) -> shared_pointer<Emulator> {
     }
   }
 
-  MessageDialog().setTitle("lucia").setText({
+  MessageDialog().setTitle(ares::Name).setText({
     "Filename: ", Location::file(filename), "\n\n"
     "Unable to determine what type of game this file is.\n"
     "Please use the load menu to choose the appropriate game system instead."
@@ -35,7 +35,7 @@ auto Program::load(shared_pointer<Emulator> emulator, string filename) -> bool {
   }
   if(!file::exists(filename)) return false;
 
-  vector<uint8_t> filedata;
+  vector<u8> filedata;
   if(filename.iendsWith(".zip")) {
     Decode::ZIP archive;
     if(archive.open(filename)) {
@@ -74,7 +74,7 @@ auto Program::load(shared_pointer<Emulator> emulator, string filename) -> bool {
   string savesPath = settings.paths.saves;
   if(!savesPath) savesPath = Location::path(filename);
   if(!directory::writable(savesPath)) {
-    MessageDialog().setTitle("lucia").setText({
+    MessageDialog().setTitle(ares::Name).setText({
       "The current save path is read-only; please choose a writable save path now.\n"
       "Otherwise, any in-game progress will be lost once this game is unloaded!\n\n"
       "Current save location: ", savesPath
@@ -93,8 +93,10 @@ auto Program::load(shared_pointer<Emulator> emulator, string filename) -> bool {
   propertiesViewer.reload();
   traceLogger.reload();
   state = {};  //reset hotkey state slot to 1
-  if(settings.general.autoDebug) {
+  if(settings.boot.debugger) {
     pause(true);
+    traceLogger.traceToTerminal.setChecked(true);
+    traceLogger.traceToFile.setChecked(false);
     toolsWindow.show("Tracer");
     presentation.setFocused();
   } else {
@@ -103,7 +105,7 @@ auto Program::load(shared_pointer<Emulator> emulator, string filename) -> bool {
   showMessage({"Loaded ", Location::prefix(emulator->game.location), patchApplied ? ", and patch applied" : ""});
 
   //update recent games list
-  for(int index = 7; index >= 0; index--) {
+  for(s32 index = 7; index >= 0; index--) {
     settings.recent.game[index + 1] = settings.recent.game[index];
   }
   settings.recent.game[0] = {emulator->name, ";", filename};
@@ -118,6 +120,8 @@ auto Program::unload() -> void {
   settings.save();
   showMessage({"Unloaded ", Location::prefix(emulator->game.location)});
   emulator->unload();
+  screens.reset();
+  streams.reset();
   emulator.reset();
   rewindReset();
   presentation.unloadEmulator();

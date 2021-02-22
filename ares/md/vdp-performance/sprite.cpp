@@ -1,12 +1,13 @@
 auto VDP::Sprite::render() -> void {
   bool interlace = vdp.io.interlaceMode == 3;
-  uint y = vdp.state.vcounter + 128;
+  u32 y = vdp.state.vcounter + 128;
   if(interlace) y = y << 1 | vdp.state.field;
 
-  uint link = 0;
-  uint tiles = 0;
-  uint count = 0;
-  uint objectSize = 0;
+  u32 link = 0;
+  u32 tiles = 0;
+  u32 count = 0;
+  u32 objectSize = 0;
+
   do {
     auto& object = oam[link];
     link = object.link;
@@ -17,25 +18,29 @@ auto VDP::Sprite::render() -> void {
 
     objects[objectSize++] = object;
     tiles += object.width() >> 3;
-  } while(link && link < 80 && objectSize < 20 && tiles < 40 && ++count < 80);
 
-  memory::fill<uint8>(pixels, vdp.screenWidth());
-  uint shiftY = interlace ? 4 : 3;
-  uint maskY = interlace ? 15 : 7;
-  uint tileShift = interlace ? 7 : 6;
+    if(!link || link >= linkLimit()) break;
+    if(objectSize >= objectLimit()) break;
+    if(tiles >= tileLimit()) break;
+  } while(++count < linkLimit());
 
-  for(int index = objectSize - 1; index >= 0; index--) {
+  memory::fill<u8>(pixels, vdp.screenWidth());
+  u32 shiftY = interlace ? 4 : 3;
+  u32 maskY = interlace ? 15 : 7;
+  u32 tileShift = interlace ? 7 : 6;
+
+  for(s32 index = objectSize - 1; index >= 0; index--) {
     auto& object = objects[index];
-    uint objectY = y - object.y;
+    u32 objectY = y - object.y;
     if(object.verticalFlip) objectY = (object.height() - 1) - objectY;
-    uint tileIncrement = (object.height() >> interlace) >> 3 << tileShift;
-    uint tileAddress = object.address + (objectY >> shiftY) << tileShift;
+    u32 tileIncrement = (object.height() >> interlace) >> 3 << tileShift;
+    u32 tileAddress = object.address + (objectY >> shiftY) << tileShift;
     tileAddress += (objectY & maskY) << 3;
     auto tileData = &vdp.vram.pixels[tileAddress & 0x1fff8];
-    uint w = !object.horizontalFlip ? object.x - 128 : (object.x + object.width() - 1) - 128;
-    int incrementX = object.horizontalFlip ? -1 : +1;
-    for(uint objectX = 0; objectX < object.width();) {
-      if(uint color = tileData[objectX & 7]) {
+    u32 w = !object.horizontalFlip ? object.x - 128 : (object.x + object.width() - 1) - 128;
+    s32 incrementX = object.horizontalFlip ? -1 : +1;
+    for(u32 objectX = 0; objectX < object.width();) {
+      if(u32 color = tileData[objectX & 7]) {
         pixels[w & 511] = object.palette << 0 | object.priority << 2 | color;
       }
       w += incrementX;
@@ -47,7 +52,7 @@ auto VDP::Sprite::render() -> void {
   }
 }
 
-auto VDP::Sprite::write(uint9 address, uint16 data) -> void {
+auto VDP::Sprite::write(n9 address, n16 data) -> void {
   if(address > 320) return;
 
   auto& object = oam[address >> 2];

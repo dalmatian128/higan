@@ -7,28 +7,14 @@
 #include <nmmintrin.h>
 using v128 = __m128i;
 
+#if defined(VULKAN)
+  #include <n64/vulkan/vulkan.hpp>
+#endif
+
 namespace ares::Nintendo64 {
-  struct Accuracy {
-    //enable all accuracy flags
-    static constexpr bool Reference = 0;
-
-    struct CPU {
-      //0 = dynamic recompiler; 1 = interpreter
-      static constexpr bool Interpreter = 0 | Reference;
-
-      //exceptions when the CPU accesses unaligned memory addresses
-      static constexpr bool AddressErrors = 0 | Reference;
-    };
-
-    struct RSP {
-      //0 = dynamic recompiler; 1 = interpreter
-      static constexpr bool Interpreter = 0 | Reference;
-
-      //VU instructions
-      static constexpr bool SISD = 0 | Reference;
-      static constexpr bool SIMD = SISD == 0;
-    };
-  };
+  auto enumerate() -> vector<string>;
+  auto load(Node::System& node, string name) -> bool;
+  auto option(string name, string value) -> bool;
 
   struct Region {
     static inline auto NTSC() -> bool;
@@ -41,12 +27,13 @@ namespace ares::Nintendo64 {
     }
 
     auto serialize(serializer& s) -> void {
-      s.integer(clock);
+      s(clock);
     }
 
-    i64 clock;
+    s64 clock;
   };
 
+  #include <n64/accuracy.hpp>
   #include <n64/memory/memory.hpp>
   #include <n64/system/system.hpp>
   #include <n64/cartridge/cartridge.hpp>
@@ -64,5 +51,3 @@ namespace ares::Nintendo64 {
   #include <n64/rsp/rsp.hpp>
   #include <n64/memory/bus.hpp>
 }
-
-#include <n64/interface/interface.hpp>

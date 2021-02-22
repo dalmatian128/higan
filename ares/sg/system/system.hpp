@@ -1,30 +1,31 @@
 struct System {
-  Node::Object node;
-  Node::String regionNode;
+  Node::System node;
 
   struct Controls {
     Node::Object node;
-    Node::Button pause;
+    Node::Input::Button pause;
 
     //controls.cpp
     auto load(Node::Object) -> void;
     auto poll() -> void;
   } controls;
 
-  enum class Model : uint { SG1000, SC3000 };
-  enum class Region : uint { NTSC, PAL };
+  enum class Model : u32 { SG1000, SC3000 };
+  enum class Region : u32 { NTSC, PAL };
 
+  auto name() const -> string { return information.name; }
   auto model() const -> Model { return information.model; }
   auto region() const -> Region { return information.region; }
   auto colorburst() const -> double { return information.colorburst; }
 
   //system.cpp
+  auto game() -> string;
   auto run() -> void;
 
-  auto load(Node::Object&) -> void;
+  auto load(Node::System& node, string name) -> bool;
   auto save() -> void;
   auto unload() -> void;
-  auto power() -> void;
+  auto power(bool reset = false) -> void;
 
   //serialization.cpp
   auto serialize(bool synchronize) -> serializer;
@@ -32,16 +33,14 @@ struct System {
 
 private:
   struct Information {
+    string name = "SG-1000";
     Model model = Model::SG1000;
     Region region = Region::NTSC;
-    double colorburst = Constants::Colorburst::NTSC;
-    uint32 serializeSize[2];
+    f64 colorburst = Constants::Colorburst::NTSC;
   } information;
 
   //serialization.cpp
-  auto serialize(serializer&) -> void;
-  auto serializeAll(serializer&, bool synchronize) -> void;
-  auto serializeInit(bool synchronize) -> uint;
+  auto serialize(serializer&, bool synchronize) -> void;
 };
 
 extern System system;

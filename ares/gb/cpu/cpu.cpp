@@ -16,10 +16,10 @@ auto CPU::load(Node::Object parent) -> void {
   wram.allocate(!Model::GameBoyColor() ? 8_KiB : 32_KiB);
   hram.allocate(128);
 
-  node = parent->append<Node::Component>("CPU");
+  node = parent->append<Node::Object>("CPU");
 
   if(Model::GameBoy()) {
-    version = node->append<Node::String>("Version", "DMG-CPU B");
+    version = node->append<Node::Setting::String>("Version", "DMG-CPU B");
     version->setAllowedValues({
       "DMG-CPU",
       "DMG-CPU A",
@@ -30,7 +30,7 @@ auto CPU::load(Node::Object parent) -> void {
   }
 
   if(Model::SuperGameBoy()) {
-    version = node->append<Node::String>("Version", "SGB-CPU 01");
+    version = node->append<Node::Setting::String>("Version", "SGB-CPU 01");
     version->setAllowedValues({
       "SGB-CPU 01",
       "CPU SGB2"
@@ -38,7 +38,7 @@ auto CPU::load(Node::Object parent) -> void {
   }
 
   if(Model::GameBoyColor()) {
-    version = node->append<Node::String>("Version", "CPU CGB");
+    version = node->append<Node::Setting::String>("Version", "CPU CGB");
     version->setAllowedValues({
       "CPU CGB",
       "CPU CGB A",
@@ -77,10 +77,10 @@ auto CPU::main() -> void {
       idle();
       r.ime = 0;
       write(--SP, PC >> 8);  //upper byte may write to IE before it is polled again
-      uint8 mask = status.interruptFlag & status.interruptEnable;
+      n8 mask = status.interruptFlag & status.interruptEnable;
       write(--SP, PC >> 0);  //lower byte write to IE has no effect
       if(mask) {
-        uint interruptID = bit::first(mask);  //find highest priority interrupt
+        u32 interruptID = bit::first(mask);  //find highest priority interrupt
         lower(interruptID);
         PC = 0x0040 + interruptID * 8;
       } else {
@@ -98,11 +98,11 @@ auto CPU::main() -> void {
   }
 }
 
-auto CPU::raised(uint interruptID) const -> bool {
+auto CPU::raised(u32 interruptID) const -> bool {
   return status.interruptFlag.bit(interruptID);
 }
 
-auto CPU::raise(uint interruptID) -> void {
+auto CPU::raise(u32 interruptID) -> void {
   status.interruptFlag.bit(interruptID) = 1;
   if(status.interruptEnable.bit(interruptID)) {
     r.halt = false;
@@ -110,7 +110,7 @@ auto CPU::raise(uint interruptID) -> void {
   }
 }
 
-auto CPU::lower(uint interruptID) -> void {
+auto CPU::lower(u32 interruptID) -> void {
   status.interruptFlag.bit(interruptID) = 0;
 }
 

@@ -1,11 +1,11 @@
 TwinTap::TwinTap(Node::Port parent) {
   node = parent->append<Node::Peripheral>("Twin Tap");
 
-  one = node->append<Node::Button>("1");
-  two = node->append<Node::Button>("2");
+  one = node->append<Node::Input::Button>("1");
+  two = node->append<Node::Input::Button>("2");
 }
 
-auto TwinTap::data() -> uint2 {
+auto TwinTap::data() -> n2 {
   if(latched == 1) {
     platform->input(two);
     return two->value();  //unconfirmed
@@ -21,7 +21,7 @@ auto TwinTap::data() -> uint2 {
 }
 
 //unconfirmed
-auto TwinTap::latch(bool data) -> void {
+auto TwinTap::latch(n1 data) -> void {
   if(latched == data) return;
   latched = data;
   counter = 0;

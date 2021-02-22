@@ -8,16 +8,17 @@ RI ri;
 #include "serialization.cpp"
 
 auto RI::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("RI");
+  node = parent->append<Node::Object>("RI");
   debugger.load(node);
 }
 
 auto RI::unload() -> void {
-  node = {};
   debugger = {};
+  node.reset();
 }
 
-auto RI::power() -> void {
+auto RI::power(bool reset) -> void {
+  io = {};
 }
 
 }

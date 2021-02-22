@@ -1,17 +1,17 @@
 Gamepad::Gamepad(Node::Port parent) {
   node = parent->append<Node::Peripheral>("Gamepad");
 
-  up     = node->append<Node::Button>("Up");
-  down   = node->append<Node::Button>("Down");
-  left   = node->append<Node::Button>("Left");
-  right  = node->append<Node::Button>("Right");
-  two    = node->append<Node::Button>("II");
-  one    = node->append<Node::Button>("I");
-  select = node->append<Node::Button>("Select");
-  run    = node->append<Node::Button>("Run");
+  up     = node->append<Node::Input::Button>("Up");
+  down   = node->append<Node::Input::Button>("Down");
+  left   = node->append<Node::Input::Button>("Left");
+  right  = node->append<Node::Input::Button>("Right");
+  two    = node->append<Node::Input::Button>("II");
+  one    = node->append<Node::Input::Button>("I");
+  select = node->append<Node::Input::Button>("Select");
+  run    = node->append<Node::Input::Button>("Run");
 }
 
-auto Gamepad::read() -> uint4 {
+auto Gamepad::read() -> n4 {
   if(clr) return 0;
 
   platform->input(up);
@@ -35,7 +35,7 @@ auto Gamepad::read() -> uint4 {
     xHold = 1, swap(leftLatch, rightLatch);
   }
 
-  uint4 data;
+  n4 data;
 
   if(sel) {
     data.bit(0) = !upLatch;
@@ -52,7 +52,7 @@ auto Gamepad::read() -> uint4 {
   return data;
 }
 
-auto Gamepad::write(uint2 data) -> void {
+auto Gamepad::write(n2 data) -> void {
   //there should be a small delay for this to take effect ...
   sel = data.bit(0);
   clr = data.bit(1);

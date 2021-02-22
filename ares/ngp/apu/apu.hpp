@@ -1,6 +1,6 @@
 struct APU : Z80, Z80::Bus, Thread {
-  Node::Component node;
-  Memory::Writable<uint8> ram;
+  Node::Object node;
+  Memory::Writable<n8> ram;
 
   struct Debugger {
     //debugger.cpp
@@ -9,12 +9,12 @@ struct APU : Z80, Z80::Bus, Thread {
     auto interrupt(string_view) -> void;
 
     struct Memory {
-      Node::Memory ram;
+      Node::Debugger::Memory ram;
     } memory;
 
     struct Tracer {
-      Node::Instruction instruction;
-      Node::Notification interrupt;
+      Node::Debugger::Tracer::Instruction instruction;
+      Node::Debugger::Tracer::Notification interrupt;
     } tracer;
   } debugger;
 
@@ -26,35 +26,35 @@ struct APU : Z80, Z80::Bus, Thread {
   auto unload() -> void;
 
   auto main() -> void;
-  auto step(uint clocks) -> void override;
+  auto step(u32 clocks) -> void override;
   auto power() -> void;
   auto enable() -> void;
   auto disable() -> void;
 
   //memory.cpp
-  auto read(uint16 address) -> uint8 override;
-  auto write(uint16 address, uint8 data) -> void override;
+  auto read(n16 address) -> n8 override;
+  auto write(n16 address, n8 data) -> void override;
 
-  auto in(uint16 address) -> uint8 override;
-  auto out(uint16 address, uint8 data) -> void override;
+  auto in(n16 address) -> n8 override;
+  auto out(n16 address, n8 data) -> void override;
 
   //serialization.cpp
-  auto serialize(serializer&) -> void;
+  auto serialize(serializer&) -> void override;
 
   struct NMI {
-    uint1 line;
+    n1 line;
   } nmi;
 
   struct IRQ {
-    uint1 line;
+    n1 line;
   } irq;
 
   struct Port {
-    uint8 data;
+    n8 data;
   } port;
 
   struct IO {
-    uint1 enable;
+    n1 enable;
   } io;
 };
 

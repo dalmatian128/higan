@@ -13,7 +13,7 @@ PCD pcd;
 #include "serialization.cpp"
 
 auto PCD::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("PC Engine CD");
+  node = parent->append<Node::Object>("PC Engine CD");
 
   tray = node->append<Node::Port>("Disc Tray");
   tray->setFamily("PC Engine CD");
@@ -55,11 +55,11 @@ auto PCD::unload() -> void {
     sram.reset();
   }
 
-  cdda.unload();
-  adpcm.unload();
+  cdda.unload(node);
+  adpcm.unload(node);
   disconnect();
-  node = {};
-  tray = {};
+  tray.reset();
+  node.reset();
 }
 
 auto PCD::allocate(Node::Port parent) -> Node::Peripheral {
@@ -80,13 +80,13 @@ auto PCD::connect() -> void {
   fd = platform->open(disc, "cd.rom", File::Read, File::Required);
   if(!fd) return disconnect();
 
-  //read disc TOC (table of contents)
-  uint sectors = fd->size() / 2448;
-  vector<uint8_t> subchannel;
+  //read TOC (table of contents) from disc lead-in
+  u32 sectors = fd->size() / 2448;
+  vector<u8> subchannel;
   subchannel.resize(sectors * 96);
-  for(uint sector : range(sectors)) {
+  for(u32 sector : range(sectors)) {
     fd->seek(sector * 2448 + 2352);
-    fd->read(subchannel.data() + sector * 96, 96);
+    fd->read({subchannel.data() + sector * 96, 96});
   }
   session.decode(subchannel, 96);
 }
@@ -130,7 +130,7 @@ auto PCD::main() -> void {
   step(1);
 }
 
-auto PCD::step(uint clocks) -> void {
+auto PCD::step(u32 clocks) -> void {
   Thread::step(clocks);
   Thread::synchronize(cpu);
 }

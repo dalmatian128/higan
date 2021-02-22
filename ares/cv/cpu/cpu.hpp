@@ -1,7 +1,7 @@
 struct CPU : Z80, Z80::Bus, Thread {
-  Node::Component node;
-  Memory::Writable<uint8> ram;
-  Memory::Writable<uint8> expansion;
+  Node::Object node;
+  Memory::Writable<n8> ram;
+  Memory::Writable<n8> expansion;
 
   struct Debugger {
     //debugger.cpp
@@ -10,13 +10,13 @@ struct CPU : Z80, Z80::Bus, Thread {
     auto interrupt(string_view) -> void;
 
     struct Memory {
-      Node::Memory ram;
-      Node::Memory expansion;
+      Node::Debugger::Memory ram;
+      Node::Debugger::Memory expansion;
     } memory;
 
     struct Tracer {
-      Node::Instruction instruction;
-      Node::Notification interrupt;
+      Node::Debugger::Tracer::Instruction instruction;
+      Node::Debugger::Tracer::Notification interrupt;
     } tracer;
   } debugger;
 
@@ -27,7 +27,7 @@ struct CPU : Z80, Z80::Bus, Thread {
   auto unload() -> void;
 
   auto main() -> void;
-  auto step(uint clocks) -> void override;
+  auto step(u32 clocks) -> void override;
 
   auto setNMI(bool value) -> void;
   auto setIRQ(bool value) -> void;
@@ -35,14 +35,14 @@ struct CPU : Z80, Z80::Bus, Thread {
   auto power() -> void;
 
   //memory.cpp
-  auto read(uint16 address) -> uint8 override;
-  auto write(uint16 address, uint8 data) -> void override;
+  auto read(n16 address) -> n8 override;
+  auto write(n16 address, n8 data) -> void override;
 
-  auto in(uint16 address) -> uint8 override;
-  auto out(uint16 address, uint8 data) -> void override;
+  auto in(n16 address) -> n8 override;
+  auto out(n16 address, n8 data) -> void override;
 
   //serialization.cpp
-  auto serialize(serializer&) -> void;
+  auto serialize(serializer&) -> void override;
 
 private:
   struct State {

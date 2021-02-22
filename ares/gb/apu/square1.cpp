@@ -14,7 +14,7 @@ auto APU::Square1::run() -> void {
     }
   }
 
-  uint4 sample = dutyOutput ? (uint)volume : 0;
+  n4 sample = dutyOutput ? (u32)volume : 0;
   if(!enable) sample = 0;
 
   output = sample;
@@ -24,8 +24,8 @@ auto APU::Square1::sweep(bool update) -> void {
   if(!sweepEnable) return;
 
   sweepNegate = sweepDirection;
-  uint delta = frequencyShadow >> sweepShift;
-  int freq = frequencyShadow + (sweepNegate ? -delta : delta);
+  u32 delta = frequencyShadow >> sweepShift;
+  s32 freq = frequencyShadow + (sweepNegate ? -delta : delta);
 
   if(freq > 2047) {
     enable = false;
@@ -44,7 +44,7 @@ auto APU::Square1::clockLength() -> void {
 
 auto APU::Square1::clockSweep() -> void {
   if(--sweepPeriod == 0) {
-    sweepPeriod = sweepFrequency ? (uint)sweepFrequency : 8;
+    sweepPeriod = sweepFrequency ? (u32)sweepFrequency : 8;
     if(sweepEnable && sweepFrequency) {
       sweep(1);
       sweep(0);
@@ -54,7 +54,7 @@ auto APU::Square1::clockSweep() -> void {
 
 auto APU::Square1::clockEnvelope() -> void {
   if(enable && envelopeFrequency && --envelopePeriod == 0) {
-    envelopePeriod = envelopeFrequency ? (uint)envelopeFrequency : 8;
+    envelopePeriod = envelopeFrequency ? (u32)envelopeFrequency : 8;
     if(envelopeDirection == 0 && volume >  0) volume--;
     if(envelopeDirection == 1 && volume < 15) volume++;
   }
@@ -63,7 +63,7 @@ auto APU::Square1::clockEnvelope() -> void {
 auto APU::Square1::trigger() -> void {
   enable = dacEnable();
   period = 2 * (2048 - frequency);
-  envelopePeriod = envelopeFrequency ? (uint)envelopeFrequency : 8;
+  envelopePeriod = envelopeFrequency ? (u32)envelopeFrequency : 8;
   volume = envelopeVolume;
 
   if(!length) {
@@ -73,7 +73,7 @@ auto APU::Square1::trigger() -> void {
 
   frequencyShadow = frequency;
   sweepNegate = false;
-  sweepPeriod = sweepFrequency ? (uint)sweepFrequency : 8;
+  sweepPeriod = sweepFrequency ? (u32)sweepFrequency : 8;
   sweepEnable = sweepPeriod || sweepShift;
   if(sweepShift) sweep(0);
 }
@@ -106,27 +106,27 @@ auto APU::Square1::power(bool initializeLength) -> void {
 }
 
 auto APU::Square1::serialize(serializer& s) -> void {
-  s.integer(enable);
+  s(enable);
 
-  s.integer(sweepFrequency);
-  s.integer(sweepDirection);
-  s.integer(sweepShift);
-  s.integer(sweepNegate);
-  s.integer(duty);
-  s.integer(length);
-  s.integer(envelopeVolume);
-  s.integer(envelopeDirection);
-  s.integer(envelopeFrequency);
-  s.integer(frequency);
-  s.integer(counter);
+  s(sweepFrequency);
+  s(sweepDirection);
+  s(sweepShift);
+  s(sweepNegate);
+  s(duty);
+  s(length);
+  s(envelopeVolume);
+  s(envelopeDirection);
+  s(envelopeFrequency);
+  s(frequency);
+  s(counter);
 
-  s.integer(output);
-  s.integer(dutyOutput);
-  s.integer(phase);
-  s.integer(period);
-  s.integer(envelopePeriod);
-  s.integer(sweepPeriod);
-  s.integer(frequencyShadow);
-  s.integer(sweepEnable);
-  s.integer(volume);
+  s(output);
+  s(dutyOutput);
+  s(phase);
+  s(period);
+  s(envelopePeriod);
+  s(sweepPeriod);
+  s(frequencyShadow);
+  s(sweepEnable);
+  s(volume);
 }

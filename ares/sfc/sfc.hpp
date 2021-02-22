@@ -16,6 +16,8 @@
 
 namespace ares::SuperFamicom {
   #include <ares/inline.hpp>
+  auto enumerate() -> vector<string>;
+  auto load(Node::System& node, string name) -> bool;
 
   struct Region {
     static inline auto NTSC() -> bool;
@@ -40,5 +42,3 @@ namespace ares::SuperFamicom {
   #include <sfc/memory/memory-inline.hpp>
   #include <sfc/ppu/counter/counter-inline.hpp>
 }
-
-#include <sfc/interface/interface.hpp>

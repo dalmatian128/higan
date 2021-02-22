@@ -13,7 +13,7 @@ auto APU::load(Node::Object parent) -> void {
     ram.load(fp);
   }
 
-  node = parent->append<Node::Component>("APU");
+  node = parent->append<Node::Object>("APU");
 
   debugger.load(node);
 }
@@ -49,7 +49,7 @@ auto APU::main() -> void {
   instruction();
 }
 
-auto APU::step(uint clocks) -> void {
+auto APU::step(u32 clocks) -> void {
   Thread::step(clocks);
   Thread::synchronize(cpu, psg);
 }

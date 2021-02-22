@@ -11,39 +11,42 @@ VPU vpu;
 #include "serialization.cpp"
 
 auto VPU::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("VPU");
+  node = parent->append<Node::Object>("VPU");
 
-  screen = node->append<Node::Screen>("Screen");
+  screen = node->append<Node::Video::Screen>("Screen", 160, 152);
   if(Model::NeoGeoPocket()) screen->colors(1 << 3, {&VPU::colorNeoGeoPocket, this});
   if(Model::NeoGeoPocketColor()) screen->colors(1 << 12, {&VPU::colorNeoGeoPocketColor, this});
   screen->setSize(160, 152);
+  screen->setViewport(0, 0, 160, 152);
   screen->setScale(1.0, 1.0);
   screen->setAspect(1.0, 1.0);
 
-  interframeBlending = screen->append<Node::Boolean>("Interframe Blending", true, [&](auto value) {
+  interframeBlending = screen->append<Node::Setting::Boolean>("Interframe Blending", true, [&](auto value) {
     screen->setInterframeBlending(value);
   });
   interframeBlending->setDynamic(true);
 }
 
 auto VPU::unload() -> void {
-  node = {};
-  screen = {};
-  interframeBlending = {};
+  interframeBlending.reset();
+  screen->quit();
+  node->remove(screen);
+  screen.reset();
+  node.reset();
 }
 
 auto VPU::main() -> void {
   if(io.vcounter < 152) {
-    uint8 y = io.vcounter;
-    auto output = buffer + y * 160;
+    n8 y = io.vcounter;
+    auto line = screen->pixels().data() + y * 160;
     cacheSprites(y);
-    for(uint8 x : range(160)) {
+    for(n8 x : range(160)) {
       bool validPlane1 = renderPlane(x, y, plane1);
       bool validPlane2 = renderPlane(x, y, plane2);
       bool validSprite = renderSprite(x);
       bool validWindow = renderWindow(x, y);
 
-      uint12 color;
+      n12 color;
       //the dev manual says only background.mode = 0b10 enables background.color
       //Ogre Battle however sets 0b00 and expects the background color to be used
       //as such, it appears that only the lower bit of background.mode matters?
@@ -64,7 +67,7 @@ auto VPU::main() -> void {
         color ^= 7;
       }
 
-      output[x] = color;
+      line[x] = color;
       io.hcounter += 3;
       step(3);
     }
@@ -83,6 +86,7 @@ auto VPU::main() -> void {
   if(io.vcounter == 152) {
     io.vblankActive = 1;
     cpu.int4.set(!io.vblankEnableIRQ);
+    screen->frame();
     scheduler.exit(Event::Frame);
   }
   if(io.vcounter == io.vlines) {
@@ -101,17 +105,14 @@ auto VPU::main() -> void {
   cpu.pollPowerButton();
 }
 
-auto VPU::step(uint clocks) -> void {
+auto VPU::step(u32 clocks) -> void {
   Thread::step(clocks);
   synchronize(cpu);
 }
 
-auto VPU::refresh() -> void {
-  screen->refresh(buffer, 160 * sizeof(uint32), 160, 152);
-}
-
 auto VPU::power() -> void {
   Thread::create(system.frequency(), {&VPU::main, this});
+  screen->power();
 
   for(auto& p : colors) p = {};
   background = {};

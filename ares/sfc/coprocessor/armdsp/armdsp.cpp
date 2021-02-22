@@ -5,7 +5,7 @@ ARMDSP armdsp;
 #include "serialization.cpp"
 
 auto ARMDSP::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("ARM");
+  node = parent->append<Node::Object>("ARM");
 
   debugger.load(node);
 }
@@ -38,14 +38,14 @@ auto ARMDSP::main() -> void {
   instruction();
 }
 
-auto ARMDSP::step(uint clocks) -> void {
+auto ARMDSP::step(u32 clocks) -> void {
   if(bridge.timer && --bridge.timer == 0);
   Thread::step(clocks);
   Thread::synchronize(cpu);
 }
 
 auto ARMDSP::power() -> void {
-  random.array((uint8*)programRAM, sizeof(programRAM));
+  random.array({programRAM, sizeof(programRAM)});
   bridge.reset = false;
   reset();
 }

@@ -9,7 +9,7 @@ Cartridge& expansion = expansionSlot.cartridge;
 #include "serialization.cpp"
 
 auto Cartridge::allocate(Node::Port parent) -> Node::Peripheral {
-  return node = parent->append<Node::Peripheral>(interface->name());
+  return node = parent->append<Node::Peripheral>(system.name());
 }
 
 auto Cartridge::connect() -> void {
@@ -34,7 +34,7 @@ auto Cartridge::connect() -> void {
   if(information.board == "Linear") board = new Board::Linear{*this};
   if(information.board == "SuperLodeRunner") board = new Board::SuperLodeRunner{*this};
   if(information.board == "SuperPierrot") board = new Board::SuperPierrot{*this};
-  if(!board) board = new Board::KonamiSCC{*this};
+  if(!board) board = new Board::Konami{*this};
   board->load(document);
 
   power();
@@ -57,7 +57,7 @@ auto Cartridge::main() -> void {
   step(system.colorburst());
 }
 
-auto Cartridge::step(uint clocks) -> void {
+auto Cartridge::step(u32 clocks) -> void {
   Thread::step(clocks);
   Thread::synchronize(cpu);
 }
@@ -67,12 +67,12 @@ auto Cartridge::power() -> void {
   if(board) board->power();
 }
 
-auto Cartridge::read(uint16 address) -> uint8 {
+auto Cartridge::read(n16 address) -> n8 {
   if(board) return board->read(address, 0xff);
   return 0xff;
 }
 
-auto Cartridge::write(uint16 address, uint8 data) -> void {
+auto Cartridge::write(n16 address, n8 data) -> void {
   if(board) return board->write(address, data);
 }
 

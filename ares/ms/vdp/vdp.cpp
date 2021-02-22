@@ -14,9 +14,9 @@ auto VDP::load(Node::Object parent) -> void {
   vram.allocate(16_KiB);
   cram.allocate(!Model::GameGear() ? 32 : 64);
 
-  node = parent->append<Node::Component>("VDP");
+  node = parent->append<Node::Object>("VDP");
 
-  screen = node->append<Node::Screen>("Screen");
+  screen = node->append<Node::Video::Screen>("Screen", 256, 264);
 
   if(Model::MasterSystem()) {
     screen->colors(1 << 6, {&VDP::colorMasterSystem, this});
@@ -31,7 +31,7 @@ auto VDP::load(Node::Object parent) -> void {
     screen->setScale(1.0, 1.0);
     screen->setAspect(1.0, 1.0);
 
-    interframeBlending = screen->append<Node::Boolean>("Interframe Blending", true, [&](auto value) {
+    interframeBlending = screen->append<Node::Setting::Boolean>("Interframe Blending", true, [&](auto value) {
       screen->setInterframeBlending(value);
     });
     interframeBlending->setDynamic(true);
@@ -41,12 +41,14 @@ auto VDP::load(Node::Object parent) -> void {
 }
 
 auto VDP::unload() -> void {
+  debugger = {};
+  interframeBlending.reset();
+  screen->quit();
+  node->remove(screen);
+  screen.reset();
+  node.reset();
   vram.reset();
   cram.reset();
-  node = {};
-  screen = {};
-  interframeBlending = {};
-  debugger = {};
 }
 
 auto VDP::main() -> void {
@@ -64,16 +66,16 @@ auto VDP::main() -> void {
   }
 
   //684 clocks/scanline
-  uint y = io.vcounter;
+  u32 y = io.vcounter;
   sprite.setup(y);
   if(y < vlines()) {
-    uint32* screen = buffer + (24 + y) * 256;
-    for(uint x : range(256)) {
+    auto line = screen->pixels().data() + (24 + y) * 256;
+    for(u32 x : range(256)) {
       background.run(x, y);
       sprite.run(x, y);
       step(2);
 
-      uint12 color = palette(16 | io.backdropColor);
+      n12 color = palette(16 | io.backdropColor);
       if(!io.leftClip || x >= 8) {
         if(background.output.priority || !sprite.output.color) {
           color = palette(background.output.palette << 4 | background.output.color);
@@ -82,7 +84,7 @@ auto VDP::main() -> void {
         }
       }
       if(!io.displayEnable) color = 0;
-      *screen++ = color;
+      *line++ = color;
     }
   } else {
     //Vblank
@@ -90,14 +92,26 @@ auto VDP::main() -> void {
   }
   step(172);
 
-  if(io.vcounter == 240) scheduler.exit(Event::Frame);
+  if(io.vcounter == 240) {
+    io.ccounter++;  //C-sync counter
+    if(Model::MasterSystem()) {
+      if(vlines() == 192) screen->setViewport(0,  0, 256, 240);
+      if(vlines() == 224) screen->setViewport(0, 16, 256, 240);
+      if(vlines() == 240) screen->setViewport(0, 24, 256, 240);
+    }
+    if(Model::GameGear()) {
+      screen->setViewport(48, 48, 160, 144);
+    }
+    screen->frame();
+    scheduler.exit(Event::Frame);
+  }
 }
 
-auto VDP::step(uint clocks) -> void {
+auto VDP::step(u32 clocks) -> void {
   while(clocks--) {
     if(++io.hcounter == 684) {
       io.hcounter = 0;
-      if(++io.vcounter == (Region::NTSC() ? 262 : 312)) {
+      if(++io.vcounter == (Region::PAL() ? 313 : 262)) {
         io.vcounter = 0;
       }
     }
@@ -108,22 +122,7 @@ auto VDP::step(uint clocks) -> void {
   }
 }
 
-auto VDP::refresh() -> void {
-  if(Model::MasterSystem()) {
-    //center the video output vertically in the viewport
-    uint32* centered = buffer;
-    if(vlines() == 224) centered += 16 * 256;
-    if(vlines() == 240) centered += 24 * 256;
-
-    screen->refresh(centered, 256 * sizeof(uint32), 256, 240);
-  }
-
-  if(Model::GameGear()) {
-    screen->refresh(buffer + 48 * 256 + 48, 256 * sizeof(uint32), 160, 144);
-  }
-}
-
-auto VDP::vlines() -> uint {
+auto VDP::vlines() -> u32 {
   switch(io.mode) {
   default:     return 192;
   case 0b1011: return 224;
@@ -137,8 +136,8 @@ auto VDP::vblank() -> bool {
 
 auto VDP::power() -> void {
   Thread::create(system.colorburst() * 15.0 / 5.0, {&VDP::main, this});
+  screen->power();
 
-  memory::fill<uint32>(buffer, 256 * 264);
   for(auto& byte : vram) byte = 0x00;
   for(auto& byte : cram) byte = 0x00;
   io = {};
@@ -147,9 +146,9 @@ auto VDP::power() -> void {
   sprite.power();
 }
 
-auto VDP::palette(uint5 index) -> uint12 {
+auto VDP::palette(n5 index) -> n12 {
   //Master System and Game Gear approximate TMS9918A colors by converting to RGB6 palette colors
-  static uint6 palette[16] = {
+  static const n6 palette[16] = {
     0x00, 0x00, 0x08, 0x0c, 0x10, 0x30, 0x01, 0x3c,
     0x02, 0x03, 0x05, 0x0f, 0x04, 0x33, 0x15, 0x3f,
   };

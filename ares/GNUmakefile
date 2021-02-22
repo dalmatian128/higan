@@ -7,12 +7,16 @@ else ifneq ($(filter $(platform),linux bsd),)
   options += -Wl,-export-dynamic
   options += -lX11 -lXext
 else
-  $(error "unsupported platform")
+  $(error "ares is a library and cannot be built directly.")
 endif
 
 ares.objects := ares
 
 $(object.path)/ares.o: $(ares.path)/ares/ares.cpp
+
+ifeq ($(vulkan),true)
+  flags += -DVULKAN
+endif
 
 ifeq ($(profile),accuracy)
   flags += -DPROFILE_ACCURACY

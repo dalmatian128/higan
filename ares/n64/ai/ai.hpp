@@ -1,8 +1,8 @@
 //Audio Interface
 
 struct AI : Thread, Memory::IO<AI> {
-  Node::Component node;
-  Node::Stream stream;
+  Node::Object node;
+  Node::Audio::Stream stream;
 
   struct Debugger {
     //debugger.cpp
@@ -10,7 +10,7 @@ struct AI : Thread, Memory::IO<AI> {
     auto io(string_view) -> void;
 
     struct Tracer {
-      Node::Notification io;
+      Node::Debugger::Tracer::Notification io;
     } tracer;
   } debugger;
 
@@ -19,8 +19,8 @@ struct AI : Thread, Memory::IO<AI> {
   auto unload() -> void;
   auto main() -> void;
   auto sample() -> void;
-  auto step(uint clocks) -> void;
-  auto power() -> void;
+  auto step(u32 clocks) -> void;
+  auto power(bool reset) -> void;
 
   //io.cpp
   auto readWord(u32 address) -> u32;
@@ -30,22 +30,22 @@ struct AI : Thread, Memory::IO<AI> {
   auto serialize(serializer&) -> void;
 
   struct FIFO {
-    uint24 address = 0;
+    n24 address;
   } fifo[2];
 
   struct IO {
-     uint1 dmaEnable = 0;
-    uint24 dmaAddress[2] = {};
-    uint18 dmaLength[2] = {};
-     uint2 dmaCount = 0;
-    uint14 dacRate = 0;
-     uint4 bitRate = 0;
+    n1  dmaEnable;
+    n24 dmaAddress[2];
+    n18 dmaLength[2];
+    n2  dmaCount;
+    n14 dacRate;
+    n4  bitRate;
   } io;
 
   struct DAC {
-    u32 frequency = 44100;
-    u32 precision = 16;
-    u32 period = 93'750'000 / 44'100;
+    u32 frequency;
+    u32 precision;
+    u32 period;
   } dac;
 };
 

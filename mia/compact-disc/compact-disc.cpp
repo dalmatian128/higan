@@ -15,8 +15,16 @@ auto CompactDisc::manifest(string location) -> string {
 }
 
 auto CompactDisc::import(string filename) -> string {
+  auto manifest = this->manifest(filename);
+  if(!manifest) return "failed to parse CD-ROM";
+
+  auto document = BML::unserialize(manifest);
   string location = {pathname, Location::prefix(filename), "/"};
   if(!directory::create(location)) return "output directory not writable";
+
+  if(settings.createManifests) {
+    file::write({location, "manifest.bml"}, manifest);
+  }
 
   auto cdrom = vfs::cdrom::open(filename);
   if(!cdrom) return "failed to parse CUE sheet";
@@ -45,7 +53,7 @@ auto CompactDisc::readDataSectorBCD(string pathname, uint sectorID) -> vector<ui
       if(!track.isData()) continue;
       if(auto index = track.index(1)) {
         vector<uint8_t> sector;
-        sector.resize(2048);
+        sector.resize(2448);
         fp.seek(2448 * (abs(session.leadIn.lba) + index->lba + sectorID) + 16);
         fp.read({sector.data(), 2448});
         return sector;

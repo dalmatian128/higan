@@ -8,10 +8,15 @@ VI vi;
 #include "serialization.cpp"
 
 auto VI::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("VI");
+  node = parent->append<Node::Object>("VI");
 
-  screen = node->append<Node::Screen>("Screen");
-  screen->colors((1 << 24) + (1 << 15), [&](uint32 color) -> uint64 {
+  #if defined(VULKAN)
+  screen = node->append<Node::Video::Screen>("Screen", vulkan.outputUpscale * 640, vulkan.outputUpscale * 480);
+  #else
+  screen = node->append<Node::Video::Screen>("Screen", 640, 480);
+  #endif
+  screen->setRefresh({&VI::refresh, this});
+  screen->colors((1 << 24) + (1 << 15), [&](n32 color) -> n64 {
     if(color < (1 << 24)) {
       u64 a = 65535;
       u64 r = image::normalize(color >> 16 & 255, 8, 16);
@@ -26,15 +31,24 @@ auto VI::load(Node::Object parent) -> void {
       return a << 48 | r << 32 | g << 16 | b << 0;
     }
   });
-  screen->setSize(640, 478);
+  #if defined(VULKAN)
+  screen->setSize(vulkan.outputUpscale * 640, vulkan.outputUpscale * 480);
+  if(!vulkan.supersampleScanout) {
+    screen->setScale(1.0 / vulkan.outputUpscale, 1.0 / vulkan.outputUpscale);
+  }
+  #else
+  screen->setSize(640, 480);
+  #endif
 
   debugger.load(node);
 }
 
 auto VI::unload() -> void {
-  node = {};
-  screen = {};
   debugger = {};
+  screen->quit();
+  node->remove(screen);
+  screen.reset();
+  node.reset();
 }
 
 auto VI::main() -> void {
@@ -42,33 +56,62 @@ auto VI::main() -> void {
     mi.raise(MI::IRQ::VI);
   }
 
-  if(++io.vcounter == 262) {
+  if(++io.vcounter == (Region::NTSC() ? 262 : 312)) {
     io.vcounter = 0;
     refreshed = true;
+
+    #if defined(VULKAN)
+    gpuOutputValid = vulkan.scanoutAsync();
+    vulkan.frame();
+    #endif
+
+    screen->frame();
   }
 
-  step(93'750'000 / 60 / 262);
+  if(Region::NTSC()) step(93'750'000 / 60 / 262);
+  if(Region::PAL ()) step(93'750'000 / 50 / 312);
 }
 
-auto VI::step(uint clocks) -> void {
+auto VI::step(u32 clocks) -> void {
   clock += clocks;
 }
 
 auto VI::refresh() -> void {
-  uint pitch  = vi.io.width;
-  uint width  = vi.io.width;  //vi.io.xscale <= 0x300 ? 320 : 640;
-  uint height = vi.io.yscale <= 0x400 ? 239 : 478;
-
-  if(vi.io.colorDepth < 2) {
-    memory::fill<u32>(output, width * height);
+  #if defined(VULKAN)
+  if(gpuOutputValid) {
+    const u8* rgba = nullptr;
+    u32 width = 0, height = 0;
+    vulkan.mapScanoutRead(rgba, width, height);
+    if(rgba) {
+      screen->setViewport(0, 0, width, height);
+      for(u32 y : range(height)) {
+        auto target = screen->pixels(1).data() + y * vulkan.outputUpscale * 640;
+        auto source = rgba + width * y * sizeof(u32);
+        for(u32 x : range(width)) {
+          target[x] = source[x * 4 + 0] << 16 | source[x * 4 + 1] << 8 | source[x * 4 + 2] << 0;
+        }
+      }
+    } else {
+      screen->setViewport(0, 0, 1, 1);
+      screen->pixels(1).data()[0] = 0;
+    }
+    vulkan.unmapScanoutRead();
+    vulkan.endScanout();
+    return;
   }
+  #endif
+
+  u32 pitch  = vi.io.width;
+  u32 width  = vi.io.width;  //vi.io.xscale <= 0x300 ? 320 : 640;
+  u32 height = vi.io.yscale <= 0x400 ? 239 : 478;
+  screen->setViewport(0, 0, width, height);
 
   if(vi.io.colorDepth == 2) {
     //15bpp
-    for(uint y : range(height)) {
+    for(u32 y : range(height)) {
       u32 address = vi.io.dramAddress + y * pitch * 2;
-      auto line = &output[y * width];
-      for(uint x : range(min(width, pitch))) {
+      auto line = screen->pixels(1).data() + y * 640;
+      for(u32 x : range(min(width, pitch))) {
         u16 data = bus.readHalf(address + x * 2);
         *line++ = 1 << 24 | data >> 1;
       }
@@ -77,23 +120,26 @@ auto VI::refresh() -> void {
 
   if(vi.io.colorDepth == 3) {
     //24bpp
-    for(uint y : range(height)) {
+    for(u32 y : range(height)) {
       u32 address = vi.io.dramAddress + y * pitch * 4;
-      auto line = &output[y * width];
-      for(uint x : range(min(width, pitch))) {
+      auto line = screen->pixels(1).data() + y * 640;
+      for(u32 x : range(min(width, pitch))) {
         u32 data = bus.readWord(address + x * 4);
         *line++ = data >> 8;
       }
     }
   }
-
-  screen->refresh((uint32*)output, width * sizeof(uint32), width, height);
 }
 
-auto VI::power() -> void {
+auto VI::power(bool reset) -> void {
   Thread::reset();
-  refreshed = false;
+  screen->power();
   io = {};
+  refreshed = false;
+
+  #if defined(VULKAN)
+  gpuOutputValid = false;
+  #endif
 }
 
 }

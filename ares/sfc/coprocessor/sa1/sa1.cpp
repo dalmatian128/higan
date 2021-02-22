@@ -9,7 +9,7 @@ SA1 sa1;
 #include "serialization.cpp"
 
 auto SA1::load(Node::Object parent) -> void {
-  node = parent->append<Node::Component>("SA1");
+  node = parent->append<Node::Object>("SA1");
 
   debugger.load(node);
 }
@@ -136,7 +136,7 @@ auto SA1::power() -> void {
   cpu.coprocessors.append(this);
 
   bwram.dma = false;
-  for(uint address : range(iram.size())) {
+  for(u32 address : range(iram.size())) {
     iram.write(address, 0x00);
   }
 

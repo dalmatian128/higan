@@ -1,15 +1,16 @@
 struct System {
-  Node::Object node;
-  Node::String regionNode;
+  Node::System node;
 
-  enum class Region : uint { NTSC, PAL };
+  enum class Region : u32 { NTSC, PAL };
 
+  auto name() const -> string { return information.name; }
   auto region() const -> Region { return information.region; }
-  auto frequency() const -> uint { return information.frequency; }
+  auto frequency() const -> u32 { return information.frequency; }
 
   //system.cpp
+  auto game() -> string;
   auto run() -> void;
-  auto load(Node::Object&) -> void;
+  auto load(Node::System& node, string name) -> bool;
   auto unload() -> void;
   auto save() -> void;
   auto power(bool reset) -> void;
@@ -20,15 +21,13 @@ struct System {
 
 private:
   struct Information {
+    string name = "Nintendo 64";
     Region region = Region::NTSC;
-    uint frequency = 93'750'000;
-    uint32 serializeSize[2];
+    u32 frequency = 93'750'000;
   } information;
 
   //serialization.cpp
-  auto serialize(serializer&) -> void;
-  auto serializeAll(serializer&, bool synchronize) -> void;
-  auto serializeInit(bool synchronize) -> uint;
+  auto serialize(serializer&, bool synchronize) -> void;
 };
 
 extern System system;
