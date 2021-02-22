@@ -158,37 +158,55 @@ auto GPU::Render::line() -> void {
   v0.x += drawingAreaOffsetX, v0.y += drawingAreaOffsetY;
   v1.x += drawingAreaOffsetX, v1.y += drawingAreaOffsetY;
 
-  v0.x = std::clamp(v0.x, drawingAreaOriginX1, drawingAreaOriginX2);
-  v0.y = std::clamp(v0.y, drawingAreaOriginY1, drawingAreaOriginY2);
-  v1.x = std::clamp(v1.x, drawingAreaOriginX1, drawingAreaOriginX2);
-  v1.y = std::clamp(v1.y, drawingAreaOriginY1, drawingAreaOriginY2);
+  auto drawingArea = [&](Point& v) -> bool {
+    if(v.x < drawingAreaOriginX1 || v.x > drawingAreaOriginX2) return false;
+    if(v.y < drawingAreaOriginY1 || v.y > drawingAreaOriginY2) return false;
+    return true;
+  };
 
-  Point d = {v1.x - v0.x, v1.y - v0.y};
-  s32 steps = abs(d.x) > abs(d.y) ? abs(d.x) : abs(d.y);
-  if(steps == 0) {
-    if(v0.x == v1.x && v0.y == v1.y) {
-      return pixel<Flags>(v0, v0);
-    } else {
-      debug(unimplemented, "GPU::renderLine(steps=0)");
-      return;
-    }
+  Point d = {abs(v1.x - v0.x), -abs(v1.y - v0.y)};
+  Point s = {v0.x < v1.x ? 1 : -1, v0.y < v1.y ? 1 : -1};
+  Point vp = {v0.x, v0.y};
+  s32 e = d.x + d.y;
+
+  Point cd;
+  s32 w;
+  if constexpr(Flags & Shade) {
+    cd = {v1.x - v0.x, v1.y - v0.y};
+    w = cd.x * (v1.x - v0.x) + cd.y * (v1.y - v0.y);
+    if(!w) w = 1;
   }
-
-  Point s = {(d.x << 16) / steps, (d.y << 16) / steps};
-  Point p = {v0.x << 16, v0.y << 16};
 
   u32 pixels = 0;
-  for(u16 step : range(steps)) {
-    pixel<Flags | Dither>({p.x >> 16, p.y >> 16}, v0);
-    p.x += s.x, p.y += s.y;
-    pixels++;
-  }
+  do {
+    if(drawingArea(vp)) {
+      if constexpr(Flags & Shade) {
+        s32 w0 = cd.x * (v1.x - vp.x) + cd.y * (v1.y - vp.y);
+        s32 w1 = cd.x * (vp.x - v0.x) + cd.y * (vp.y - v0.y);
+        u8 r = (v0.r * w0 + v1.r * w1) / w;
+        u8 g = (v0.g * w0 + v1.g * w1) / w;
+        u8 b = (v0.b * w0 + v1.b * w1) / w;
+        pixel<Flags | Dither>(vp, {r, g, b});
+      } else {
+        pixel<Flags | Dither>(vp, v0);
+      }
+      pixels++;
+    }
+
+    if(vp.x == v1.x && vp.y == v1.y) break;
+
+    s32 e2 = e << 1;
+    if(e2 >= d.y) {
+      e += d.y;
+      vp.x += s.x;
+    }
+    if(e2 <= d.x) {
+      e += d.x;
+      vp.y += s.y;
+    }
+  } while(true);
 
 //io.pcounter += cost<Flags | Line>(pixels);
-
-  if constexpr(Flags & Shade) {
-    debug(unimplemented, "ShadedLine");
-  }
 }
 
 template<u32 Flags>
