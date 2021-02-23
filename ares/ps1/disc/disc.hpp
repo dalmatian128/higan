@@ -67,6 +67,7 @@ struct Disc : Thread, Memory::Interface {
   auto commandUnmute() -> void;
   auto commandSetFilter() -> void;
   auto commandSetMode() -> void;
+  auto commandGetParameter() -> void;
   auto commandGetLocationReading() -> void;
   auto commandGetLocationPlaying() -> void;
   auto commandSetSession() -> void;

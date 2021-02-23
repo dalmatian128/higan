@@ -30,6 +30,7 @@ auto Disc::command(u8 operation) -> void {
   case 0x0c: commandUnmute(); break;
   case 0x0d: commandSetFilter(); break;
   case 0x0e: commandSetMode(); break;
+  case 0x0f: commandGetParameter(); break;
   case 0x10: commandGetLocationReading(); break;
   case 0x11: commandGetLocationPlaying(); break;
   case 0x12: commandSetSession(); break;
@@ -287,6 +288,28 @@ auto Disc::commandSetMode() -> void {
   drive.mode.speed      = data.bit(7);
 
   fifo.response.write(status());
+
+  irq.acknowledge.flag = 1;
+  irq.poll();
+}
+
+//0x0f
+auto Disc::commandGetParameter() -> void {
+  n8 data;
+  data.bit(0) = drive.mode.cdda;
+  data.bit(1) = drive.mode.autoPause;
+  data.bit(2) = drive.mode.report;
+  data.bit(3) = drive.mode.xaFilter;
+  data.bit(4) = drive.mode.ignore;
+  data.bit(5) = drive.mode.sectorSize;
+  data.bit(6) = drive.mode.xaADPCM;
+  data.bit(7) = drive.mode.speed;
+
+  fifo.response.write(status());
+  fifo.response.write(data);
+  fifo.response.write(0x00);
+  fifo.response.write(cdxa.filter.file);
+  fifo.response.write(cdxa.filter.channel);
 
   irq.acknowledge.flag = 1;
   irq.poll();
