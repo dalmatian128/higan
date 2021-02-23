@@ -91,9 +91,10 @@ protected:
 
 //unserialized:
   nall::thread _thread;
-  recursive_mutex _mutex;
+  mutex _mutex;
+  condition_variable _condition;
   atomic<bool> _kill = false;
-  atomic<bool> _frame = false;
+  bool _frame = false;
   function<void ()> _refresh;
   bool _progressive = false;
   bool _progressiveDouble = false;

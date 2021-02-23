@@ -13,7 +13,9 @@
 namespace nall {
   using mutex = std::mutex;
   using recursive_mutex = std::recursive_mutex;
+  using condition_variable = std::condition_variable;
   template<typename T> using lock_guard = std::lock_guard<T>;
+  template<typename T> using unique_lock = std::unique_lock<T>;
   template<typename T> using atomic = std::atomic<T>;
 }
 

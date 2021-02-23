@@ -18,28 +18,38 @@ Screen::~Screen() {
   if constexpr(ares::Video::Threaded) {
     if(_canvasWidth && _canvasHeight) {
       _kill = true;
+      {
+        lock_guard<mutex> lock(_mutex);
+        _frame = true;
+      }
+      _condition.notify_one();
       _thread.join();
     }
   }
 }
 
 auto Screen::main(uintptr_t) -> void {
-  while(!_kill) {
-    usleep(1);
-    if(_frame) {
-      refresh();
-      _frame = false;
-    }
-  }
+  do {
+    unique_lock<mutex> lock(_mutex);
+    _condition.wait(lock, [&] { return _frame; });
+    if(_kill) break;
+    refresh();
+    _frame = false;
+  } while(true);
 }
 
 auto Screen::quit() -> void {
   _kill = true;
+  {
+    lock_guard<mutex> lock(_mutex);
+    _frame = true;
+  }
+  _condition.notify_one();
   _thread.join();
 }
 
 auto Screen::power() -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   memory::fill<u32>(_inputA.data(), _canvasWidth * _canvasHeight, _fillColor);
   memory::fill<u32>(_inputB.data(), _canvasWidth * _canvasHeight, _fillColor);
   memory::fill<u32>(_output.data(), _canvasWidth * _canvasHeight, _fillColor);
@@ -53,22 +63,22 @@ auto Screen::pixels(bool frame) -> array_span<u32> {
 }
 
 auto Screen::resetPalette() -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _palette.reset();
 }
 
 auto Screen::resetSprites() -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _sprites.reset();
 }
 
 auto Screen::setRefresh(function<void ()> refresh) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _refresh = refresh;
 }
 
 auto Screen::setViewport(u32 x, u32 y, u32 width, u32 height) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _viewportX = x;
   _viewportY = y;
   _viewportWidth  = width;
@@ -76,89 +86,89 @@ auto Screen::setViewport(u32 x, u32 y, u32 width, u32 height) -> void {
 }
 
 auto Screen::setSize(u32 width, u32 height) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _width  = width;
   _height = height;
 }
 
 auto Screen::setScale(f64 scaleX, f64 scaleY) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _scaleX = scaleX;
   _scaleY = scaleY;
 }
 
 auto Screen::setAspect(f64 aspectX, f64 aspectY) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _aspectX = aspectX;
   _aspectY = aspectY;
 }
 
 auto Screen::setSaturation(f64 saturation) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _saturation = saturation;
   _palette.reset();
 }
 
 auto Screen::setGamma(f64 gamma) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _gamma = gamma;
   _palette.reset();
 }
 
 auto Screen::setLuminance(f64 luminance) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _luminance = luminance;
   _palette.reset();
 }
 
 auto Screen::setFillColor(u32 fillColor) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _fillColor = fillColor;
 }
 
 auto Screen::setColorBleed(bool colorBleed) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _colorBleed = colorBleed;
 }
 
 auto Screen::setInterframeBlending(bool interframeBlending) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _interframeBlending = interframeBlending;
 }
 
 auto Screen::setRotation(u32 rotation) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _rotation = rotation;
 }
 
 auto Screen::setProgressive(bool progressiveDouble) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _interlace = false;
   _progressive = true;
   _progressiveDouble = progressiveDouble;
 }
 
 auto Screen::setInterlace(bool interlaceField) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _progressive = false;
   _interlace = true;
   _interlaceField = interlaceField;
 }
 
 auto Screen::attach(Node::Video::Sprite sprite) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   if(_sprites.find(sprite)) return;
   _sprites.append(sprite);
 }
 
 auto Screen::detach(Node::Video::Sprite sprite) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   if(!_sprites.find(sprite)) return;
   _sprites.removeByValue(sprite);
 }
 
 auto Screen::colors(u32 colors, function<n64 (n32)> color) -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
+  lock_guard<mutex> lock(_mutex);
   _colors = colors;
   _color = color;
   _palette.reset();
@@ -166,19 +176,20 @@ auto Screen::colors(u32 colors, function<n64 (n32)> color) -> void {
 
 auto Screen::frame() -> void {
   if(runAhead()) return;
-  while(_frame) spinloop();
-
-  lock_guard<recursive_mutex> lock(_mutex);
-  _inputA.swap(_inputB);
-  _frame = true;
-  if constexpr(!ares::Video::Threaded) {
+  {
+    lock_guard<mutex> lock(_mutex);
+    _inputA.swap(_inputB);
+    _frame = true;
+  }
+  if constexpr(ares::Video::Threaded) {
+    _condition.notify_one();
+  } else {
     refresh();
     _frame = false;
   }
 }
 
 auto Screen::refresh() -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
   if(runAhead()) return;
 
   refreshPalette();
@@ -304,7 +315,6 @@ auto Screen::refresh() -> void {
 }
 
 auto Screen::refreshPalette() -> void {
-  lock_guard<recursive_mutex> lock(_mutex);
   if(_palette) return;
 
   //generate the color lookup palettes to convert native colors to ARGB8888
