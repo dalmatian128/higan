@@ -33,6 +33,8 @@ struct pLabel : pWidget {
   auto setForegroundColor(Color color) -> void;
   auto setText(const string& text) -> void;
 
+  dispatch_queue_t viewQueue = nullptr;
+
   CocoaLabel* cocoaLabel = nullptr;
 };
 

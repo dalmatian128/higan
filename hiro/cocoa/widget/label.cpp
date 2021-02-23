@@ -130,6 +130,8 @@ auto pLabel::construct() -> void {
     setBackgroundColor(state().backgroundColor);
     setForegroundColor(state().foregroundColor);
     setText(state().text);
+
+    viewQueue = dispatch_queue_create("dev.ares.viewQueue", DISPATCH_QUEUE_SERIAL);
   }
 }
 
@@ -137,6 +139,7 @@ auto pLabel::destruct() -> void {
   @autoreleasepool {
     [cocoaView removeFromSuperview];
     cocoaView = cocoaLabel = nil;
+    viewQueue = nil;
   }
 }
 
@@ -163,9 +166,13 @@ auto pLabel::setForegroundColor(Color color) -> void {
 }
 
 auto pLabel::setText(const string& text) -> void {
-  @autoreleasepool {
-    [cocoaView setNeedsDisplay:YES];
-  }
+  __block NSView* view = cocoaView;
+  dispatch_async(dispatch_get_main_queue(), ^{
+    @autoreleasepool {
+      [view setNeedsDisplay:YES];
+      view = nil;
+    }
+  });
 }
 
 }
