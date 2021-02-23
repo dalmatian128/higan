@@ -45,22 +45,40 @@ struct queue_spsc<T[Size]> {
   }
 
   auto await_read() -> T {
-    while(empty()) spinloop();
-    auto value = _data[_read % Size];
-    _read = _read + 1 < 2 * Size ? _read + 1 : 0;
+    T value;
+    {
+      std::unique_lock<std::mutex> lock(_mutex);
+      _notEmpty.wait(lock, [&] { return !empty(); });
+      value = _data[_read % Size];
+    }
+    {
+      std::lock_guard<std::mutex> lock(_mutex);
+      _read = _read + 1 < 2 * Size ? _read + 1 : 0;
+    }
+    _notFull.notify_one();
     return value;
   }
 
   auto await_write(const T& value) -> void {
-    while(full()) spinloop();
-    _data[_write % Size] = value;
-    _write = _write + 1 < 4 * Size ? _write + 1 : 2 * Size;
+    {
+      std::unique_lock<std::mutex> lock(_mutex);
+      _notFull.wait(lock, [&] { return !full(); });
+      _data[_write % Size] = value;
+    }
+    {
+      std::lock_guard<std::mutex> lock(_mutex);
+      _write = _write + 1 < 4 * Size ? _write + 1 : 2 * Size;
+    }
+    _notEmpty.notify_one();
   }
 
 private:
   T _data[Size];
   std::atomic<u32> _read  = 0;
   std::atomic<u32> _write = 2 * Size;
+  std::mutex _mutex;
+  std::condition_variable _notEmpty;
+  std::condition_variable _notFull;
 };
 
 }
