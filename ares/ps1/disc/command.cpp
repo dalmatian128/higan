@@ -23,6 +23,7 @@ auto Disc::command(u8 operation) -> void {
   case 0x04: commandFastForward(); break;
   case 0x05: commandRewind(); break;
   case 0x06: commandReadWithRetry(); break;
+  case 0x07: commandMotorOn(); break;
   case 0x08: commandStop(); break;
   case 0x09: commandPause(); break;
   case 0x0a: commandInitialize(); break;
@@ -155,6 +156,17 @@ auto Disc::commandReadWithRetry() -> void {
   drive.lba.current = drive.lba.request;
   ssr.reading = 1;
 
+  fifo.response.write(status());
+
+  irq.acknowledge.flag = 1;
+  irq.poll();
+}
+
+//0x07
+auto Disc::commandMotorOn() -> void {
+  ssr.motorOn = 1;
+
+  fifo.response.flush();
   fifo.response.write(status());
 
   irq.acknowledge.flag = 1;
