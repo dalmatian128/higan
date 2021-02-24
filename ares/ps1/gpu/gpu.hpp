@@ -306,6 +306,7 @@ struct GPU : Thread, Memory::Interface {
     template<u32 Flags> auto quadrilateral() -> void;
     template<u32 Flags> auto rectangle() -> void;
     template<u32 Flags> auto fill() -> void;
+    template<u32 Flags> auto copy() -> void;
     template<u32 Flags> auto cost(u32 pixels) const -> u32;
     auto execute() -> void;
 

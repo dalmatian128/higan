@@ -382,20 +382,10 @@ auto GPU::writeGP0(u32 value, bool isThread) -> void {
   //copy rectangle (VRAM to VRAM)
   if(command >= 0x80 && command <= 0x9f) {
     if(queue.write(value) < 4) return;
-    u16 sourceX = queue.data[1].bit( 0,15);
-    u16 sourceY = queue.data[1].bit(16,31);
-    u16 targetX = queue.data[2].bit( 0,15);
-    u16 targetY = queue.data[2].bit(16,31);
-    u16 width   = queue.data[3].bit( 0,15);
-    u16 height  = queue.data[3].bit(16,31);
-    for(u32 y : range(height)) {
-      for(u32 x : range(width)) {
-        u16 pixel = vram2D[n9(y + sourceY)][n10(x + sourceX)];
-        if((pixel >> 15 & io.checkMaskBit) == 0) {
-          vram2D[n9(y + targetY)][n10(x + targetX)] = pixel | io.forceMaskBit << 15;
-        }
-      }
-    }
+    render.v0 = Vertex().setPoint(queue.data[1]);
+    render.v1 = Vertex().setPoint(queue.data[2]);
+    render.size = Size().setSize(queue.data[3]);
+    renderer.queue(render);
     return queue.reset();
   }
 

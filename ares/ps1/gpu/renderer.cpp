@@ -334,6 +334,18 @@ auto GPU::Render::fill() -> void {
 }
 
 template<u32 Flags>
+auto GPU::Render::copy() -> void {
+  for(u32 y : range(size.h)) {
+    for(u32 x : range(size.w)) {
+      u16 pixel = gpu.vram2D[n9(y + v0.y)][n10(x + v0.x)];
+      if((pixel >> 15 & checkMaskBit) == 0) {
+        gpu.vram2D[n9(y + v1.y)][n10(x + v1.x)] = pixel | forceMaskBit << 15;
+      }
+    }
+  }
+}
+
+template<u32 Flags>
 auto GPU::Render::cost(u32 pixels) const -> u32 {
   //for now, do not emulate GPU overhead timing ...
   return 1;
@@ -427,6 +439,7 @@ auto GPU::Render::execute() -> void {
   case 0x65: case 0x6d: case 0x75: case 0x7d: return rectangle<Texture | Raw>();
   case 0x66: case 0x6e: case 0x76: case 0x7e: return rectangle<Texture | Alpha>();
   case 0x67: case 0x6f: case 0x77: case 0x7f: return rectangle<Texture | Alpha | Raw>();
+  case 0x80 ... 0x9f: return copy<None>();
   }
 }
 
