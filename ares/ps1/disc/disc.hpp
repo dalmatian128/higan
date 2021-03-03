@@ -185,7 +185,7 @@ struct Disc : Thread, Memory::Interface {
     } sample;
 
     bool monaural;
-    queue<s16[4032 * 8]> samples;
+    DSP::Resampler::FIR samples[2];
     s32 previousSamples[4];
   } cdxa{*this};
 

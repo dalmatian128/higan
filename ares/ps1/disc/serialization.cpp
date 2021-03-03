@@ -30,7 +30,7 @@ auto Disc::serialize(serializer& s) -> void {
   s(cdxa.sample.left);
   s(cdxa.sample.right);
   s(cdxa.monaural);
-  s(cdxa.samples);
+  s(array_span<DSP::Resampler::FIR>{cdxa.samples, 2});
   s(cdxa.previousSamples);
 
   s(event.command);

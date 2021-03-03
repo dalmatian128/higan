@@ -3,6 +3,7 @@ auto Disc::CDXA::load(Node::Object parent) -> void {
 //stream->setChannels(2);
 //stream->setFrequency(37800);
 //stream->setResamplerFrequency(44100);
+for(u32 ch : range(2)) samples[ch].reset(37800, 44100, 4032 * 8);
 }
 
 auto Disc::CDXA::unload(Node::Object parent) -> void {
@@ -27,6 +28,12 @@ auto Disc::CDXA::clockSector() -> void {
   n32 bitsPerSample = codingInfo.bit(4) ? 8 : 4;
   n1  emphasis      = codingInfo.bit(6);
 
+  for(u32 ch : range(1 + stereo)) {
+    if(sampleRate != samples[ch].inputFrequency()) {
+      samples[ch].setInputFrequency(sampleRate);
+    }
+  }
+
   if(stereo == 0 && bitsPerSample == 4) decodeADPCM<0, 0>();
   if(stereo == 0 && bitsPerSample == 8) decodeADPCM<0, 1>();
   if(stereo == 1 && bitsPerSample == 4) decodeADPCM<1, 0>();
@@ -40,10 +47,10 @@ auto Disc::CDXA::clockSample() -> void {
   s16 right = 0;
 
   if(monaural) {
-    left = right = samples.read(0);
+    left = right = samples[0].read() * 32768.0;
   } else {
-    left  = samples.read(0);
-    right = samples.read(0);
+    left  = samples[0].read() * 32768.0;
+    right = samples[1].read() * 32768.0;
   }
 
   if(self.audio.mute || self.audio.muteADPCM) {
@@ -68,8 +75,12 @@ auto Disc::CDXA::decodeADPCM() -> void {
   s16 output[SamplesPerBlock];
   for(u32 block : range(Blocks)) {
     decodeBlock<isStereo, is8bit>(output, 24 + block * BlockSize);
+    n1 ch = 0;
     for(auto sample : output) {
-      if(!samples.full()) samples.write(sample);
+      if(!samples[ch].full()) samples[ch].write(sample / 32768.0);
+      if constexpr(isStereo) {
+        ch++;
+      }
     }
   }
 }

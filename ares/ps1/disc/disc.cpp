@@ -101,9 +101,9 @@ auto Disc::main() -> void {
   }
 
   counter.cdxa += 128;
-  if(counter.cdxa >= 896) {
-    //37800hz
-    counter.cdxa -= 896;
+  if(counter.cdxa >= 768) {
+    //44100hz
+    counter.cdxa -= 768;
     cdxa.clockSample();
   }
 
@@ -198,7 +198,7 @@ auto Disc::power(bool reset) -> void {
   cdxa.sample.left = 0;
   cdxa.sample.right = 0;
   cdxa.monaural = 0;
-  cdxa.samples.flush();
+  for(auto ch : range(2)) cdxa.samples[ch].flush();
   for(auto& v : cdxa.previousSamples) v = 0;
   event.command = 0;
   event.counter = 0;
