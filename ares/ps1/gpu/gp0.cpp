@@ -264,7 +264,7 @@ auto GPU::writeGP0(u32 value, bool isThread) -> void {
   //monochrome poly-line
   if(command == 0x48 || command == 0x49 || command == 0x4a || command == 0x4b
   || command == 0x4c || command == 0x4d || command == 0x4e || command == 0x4f) {
-    if((value & 0xf000f000) != 0x50005000) return (void)queue.write(value);
+    if(queue.length < 3 || (value & 0xf000f000) != 0x50005000) return (void)queue.write(value);
     render.v0 = Vertex().setColor(queue.data[0]).setPoint(queue.data[1]);
     for(u32 n = 2; n < queue.length; n += 1) {
       render.v1 = Vertex().setColor(queue.data[0]).setPoint(queue.data[n]);
@@ -287,7 +287,7 @@ auto GPU::writeGP0(u32 value, bool isThread) -> void {
   //shaded poly-line
   if(command == 0x58 || command == 0x59 || command == 0x5a || command == 0x5b
   || command == 0x5c || command == 0x5d || command == 0x5e || command == 0x5f) {
-    if((value & 0xf000f000) != 0x50005000) return (void)queue.write(value);
+    if(queue.length < 4 || (value & 0xf000f000) != 0x50005000) return (void)queue.write(value);
     render.v0 = Vertex().setColor(queue.data[0]).setPoint(queue.data[1]);
     for(u32 n = 2; n + 1 < queue.length; n += 2) {
       render.v1 = Vertex().setColor(queue.data[n + 0]).setPoint(queue.data[n + 1]);
