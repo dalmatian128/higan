@@ -42,17 +42,15 @@ auto Disc::Drive::clockSector() -> void {
       return cdda->clockSector();
     }
 
-    if(sector.data[15] == 0x02) {
-      if(mode.xaFilter) {
+    if(sector.data[15] != 0x02) return;
+
+    if((sector.data[18] & 0x44) == 0x44) {
+      if(mode.xaADPCM == 0) return;
+      if(mode.xaFilter == 1) {
         if(sector.data[16] != cdxa->filter.file) return;
         if(sector.data[17] != cdxa->filter.channel) return;
       }
-      if(mode.xaADPCM && (sector.data[18] & 0x44) == 0x44) {
-        return cdxa->clockSector();
-      }
-      if(mode.xaFilter && (sector.data[18] & 0x44) == 0x44) {
-        return;
-      }
+      return cdxa->clockSector();
     }
 
     //any remaining FIFO data is lost if a new sector is clocked
